@@ -4,9 +4,11 @@ function read_gms_file(filename::AbstractString)
 
     filepath = joinpath(Pkg.dir("toJuMP"),".gms","")
     filepath = string(filepath,filename,".gms")
-    @show filepath
+
     if isfile(filepath)
         f = open(filepath, "r")
+    elseif isfile(filename)
+        f = open(filename, "r")
     else
         error("No gms file detected.")
     end
@@ -156,14 +158,17 @@ function read_bounds(file::IOStream, gms::oneProblem, lInit::AbstractString; kwa
         .up upper bound
         .m marginal or dual value
     =#
+
     @assert rstrip(strip(lInit, '\n'), ' ')[end] == ';' # Assumption :: alwasy one line
     all_segs = split(lInit, ';', keep=false)
     all_segs = [i for i in all_segs if !isempty(strip(i,' '))]
     for lseg in all_segs
         lseg = strip(lseg, [';', '\n', ' '])
-        sl = split(lseg, " ")
+        sl = split(lseg, "=")
         sl = [sl[i] for i in 1:length(sl) if !isempty(sl[i])]
         # There shouldn't be any space to begin with
+        sl[1] = strip(sl[1], [';', '\n', ' '])
+        sl[2] = strip(sl[2], [';', '\n', ' '])
         @assert ismatch(r"\w.\w", sl[1])
         boundVal = Float64(parse(sl[end]))
         var = split(sl[1],".")[1]
@@ -229,28 +234,28 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
     end
 
     options = Dict(kwargs)
+    m_tester = Model()
 
     info(" --------- Start writing Julia script ---------")
-    !isdir("$(Pkg.dir())/toJuMP/.jls/fgms") && mkdir("$(Pkg.dir())/toJuMP/.jls/fgms")
-    filepath = joinpath(Pkg.dir("toJuMP"),".jls/fgms","")
+    filepath = joinpath(Pkg.dir("toJuMP"),".jls/","")
     filepath = string(filepath, juliaName,".jl")
     f = open(filepath, "w")
 
     info("Writing headers...")
     write(f, "using JuMP\n\n")
-    write(f, "\tm = Model()\n")
+    write(f, "m = Model()\n")
 
-    write(f, "\n\t# ----- Variables ----- #\n")
+    write(f, "\n# ----- Variables ----- #\n")
     info("Writing variables...")
     if mode == "raw"
         for var in gms.cols
             if haskey(gms.colsType, var)
                 if gms.colsType[var] == "Positive"
-                    write(f, "\t@variable(m, $(var)>=0)\n")
+                    write(f, "@variable(m, $(var)>=0)\n")
                 elseif gms.colsType[var] == "Binary"
-                    write(f, "\t@variable(m, $(var), Bin)\n")
+                    write(f, "@variable(m, $(var), Bin)\n")
                 elseif gms.colsType[var] == "Integer"
-                    write(f, "\t@variable(m, $(var), Int)\n")
+                    write(f, "@variable(m, $(var), Int)\n")
                 else
                     error("ERROR|gms2julia.jl|write_julia_script()|Unsupported variable type.")
                 end
@@ -261,30 +266,30 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
     elseif mode == "index"
         for var in keys(gms.vars)
             if gms.vars[var] != 0
-                write(f, "\t$(var)_Idx = $(gms.vars[var])\n")
-                write(f, "\t@variable(m, $(var)[$(var)_Idx])\n")
+                write(f, "$(var)_Idx = $(gms.vars[var])\n")
+                write(f, "@variable(m, $(var)[$(var)_Idx])\n")
                 vs = "@variable(m_tester, $(var)[$(gms.vars[var])])"
                 eval(parse(vs))
             else
-                write(f, "\t@variable(m, $(var))\n")
+                write(f, "@variable(m, $(var))\n")
                 vs = "@variable(m_tester, $(var))"
                 eval(parse(vs))
             end
         end
         for col in keys(gms.colsType)
             if gms.colsType[col] == "Binary"
-                write(f, "\tsetcategory($(gms.cols2vars[col]), :Bin)\n")
+                write(f, "setcategory($(gms.cols2vars[col]), :Bin)\n")
             elseif gms.colsType[col] == "Integer"
-                write(f, "\tsetcategory($(gms.cols2vars[col]), :Int)\n")
+                write(f, "setcategory($(gms.cols2vars[col]), :Int)\n")
             elseif gms.colsType[col] == "Positive"
-                write(f, "\tsetlowerbound($(gms.cols2vars[col]), 0.0)\n")
+                write(f, "setlowerbound($(gms.cols2vars[col]), 0.0)\n")
             else
                 error("ERROR|gms2julia.jl|write_julia_script()|Unsupported variable type.")
             end
         end
     end
 
-    info("Writing variables' bounds...")
+    info("Writing variables bounds...")
     for col in gms.cols
         if mode == "raw"
             colName = col
@@ -292,69 +297,71 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
             colName = gms.cols2vars[col]
         end
         if haskey(gms.lb, col)
-            write(f, "\tsetlowerbound($(colName), $(gms.lb[col]))\n")
+            write(f, "setlowerbound($(colName), $(gms.lb[col]))\n")
         end
         if haskey(gms.ub, col)
-            write(f, "\tsetupperbound($(colName), $(gms.ub[col]))\n")
+            write(f, "setupperbound($(colName), $(gms.ub[col]))\n")
         end
         if haskey(gms.fx, col)
-            write(f, "\tsetlowerbound($(colName), $(gms.fx[col]))\n")
-            write(f, "\tsetupperbound($(colName), $(gms.fx[col]))\n")
+            write(f, "setlowerbound($(colName), $(gms.fx[col]))\n")
+            write(f, "setupperbound($(colName), $(gms.fx[col]))\n")
         end
     end
 
-    write(f, string("\n\n\t# ----- Constraints ----- #\n"))
+    write(f, string("\n\n# ----- Constraints ----- #\n"))
 
     info("Writing Constraints...")
     for row in gms.rows
         if gms.rowsSense[row] == "E"
             gms.rowsLHS[row] = replace_oprs(gms.rowsLHS[row])
-            if try_iflinear("\t@constraint(m_tester, $(row), $(gms.rowsLHS[row]) == $(gms.rowsRHS[row]))\n")
-                write(f, "\t@constraint(m, $(row), $(gms.rowsLHS[row]) == $(gms.rowsRHS[row]))\n")
+            if try_iflinear("@constraint(m_tester, $(gms.rowsLHS[row]) == $(gms.rowsRHS[row]))\n")
+                write(f, "@constraint(m, $(row), $(gms.rowsLHS[row]) == $(gms.rowsRHS[row]))\n")
             else
-                write(f, "\t@NLconstraint(m, $(row), $(gms.rowsLHS[row]) == $(gms.rowsRHS[row]))\n")
+                write(f, "@NLconstraint(m, $(row), $(gms.rowsLHS[row]) == $(gms.rowsRHS[row]))\n")
             end
         elseif gms.rowsSense[row] == "L"
             gms.rowsLHS[row] = replace_oprs(gms.rowsLHS[row])
-            if try_iflinear("\t@constraint(m_tester, $(row), $(gms.rowsLHS[row]) <= $(gms.rowsRHS[row]))\n")
-                write(f, "\t@constraint(m, $(row), $(gms.rowsLHS[row]) <= $(gms.rowsRHS[row]))\n")
+            if try_iflinear("@constraint(m_tester, $(gms.rowsLHS[row]) <= $(gms.rowsRHS[row]))\n")
+                write(f, "@constraint(m, $(row), $(gms.rowsLHS[row]) <= $(gms.rowsRHS[row]))\n")
             else
-                write(f, "\t@NLconstraint(m, $(row), $(gms.rowsLHS[row]) <= $(gms.rowsRHS[row]))\n")
+                write(f, "@NLconstraint(m, $(row), $(gms.rowsLHS[row]) <= $(gms.rowsRHS[row]))\n")
             end
         elseif gms.rowsSense[row] == "G"
             gms.rowsLHS[row] = replace_oprs(gms.rowsLHS[row])
-            if try_iflinear("\t@constraint(m_tester, $(row), $(gms.rowsLHS[row]) >= $(gms.rowsRHS[row]))\n")
-                write(f, "\t@constraint(m, $(row), $(gms.rowsLHS[row]) >= $(gms.rowsRHS[row]))\n")
+            if try_iflinear("@constraint(m_tester, $(gms.rowsLHS[row]) >= $(gms.rowsRHS[row]))\n")
+                write(f, "@constraint(m, $(row), $(gms.rowsLHS[row]) >= $(gms.rowsRHS[row]))\n")
             else
-                write(f, "\t@NLconstraint(m, $(row), $(gms.rowsLHS[row]) >= $(gms.rowsRHS[row]))\n")
+                write(f, "@NLconstraint(m, $(row), $(gms.rowsLHS[row]) >= $(gms.rowsRHS[row]))\n")
             end
         else
             error("ERROR|gms2julia.jl|write_julia_script()|Unkown sense type. (Unlikely)")
         end
     end
 
-    write(f, string("\n\n\t# ----- Objective ----- #\n"))
+    write(f, string("\n\n# ----- Objective ----- #\n"))
     if mode == "raw"
         info("Writing objective section...")
+        addNL = try_iflinear("@objective(m, Max, $(gms.objVar))\n")
         if gms.objSense == "maximizing"
-            write(f, "\t@objective(m, Max, $(gms.objVar))\n")
+            addNL ? write(f, "@NLobjective(m, Max, $(gms.objVar))\n") : write(f, "@objective(m, Max, $(gms.objVar))\n")
         elseif gms.objSense == "minimizing"
-            write(f, "\t@objective(m, Min, $(gms.objVar))\n")
+            addNL ? write(f, "@NLobjective(m, Min, $(gms.objVar))\n") : write(f, "@objective(m, Min, $(gms.objVar))\n")
         else
             error("ERROR|gms2julia.jl|write_julia_script()|Unkown objective sense.")
         end
     else mode == "index"
         info("Writing objective section...")
+        addNL = try_iflinear("@objective(m, Max, $(gms.cols2vars[gms.objVar]))\n")
         if gms.objSense == "maximizing"
-            write(f, "\t@objective(m, Max, $(gms.cols2vars[gms.objVar]))\n")
+            addNL ? write(f, "@NLobjective(m, Max, $(gms.cols2vars[gms.objVar]))\n") : write(f, "@objective(m, Max, $(gms.cols2vars[gms.objVar]))\n")
         elseif gms.objSense == "minimizing"
-            write(f, "\t@objective(m, Min, $(gms.cols2vars[gms.objVar]))\n")
+            addNL ? write(f, "@NLobjective(m, Min, $(gms.cols2vars[gms.objVar]))\n") : write(f, "@objective(m, Min, $(gms.cols2vars[gms.objVar]))\n")
         else
             error("ERROR|gms2julia.jl|write_julia_script()|Unkown objective sense.")
         end
     end
 
-    write(f, "m = m\n")
+    write(f, "m = m \t\t # model get returned when including this script. \n")
     info(" --------- Finish writing Julia script ---------")
     close(f)
 
@@ -399,8 +406,8 @@ function parse_varname(gms::oneProblem)
     end
 end
 
-function gms2julia(gmsName::AbstractString, juliaName::AbstractString="", mode::AbstractString="index"; kwargs...)
-    isempty(juliaName) && (juliaName = gmsName)
+function gms2julia(gmsName::AbstractString, probName::AbstractString="", mode::AbstractString="index"; kwargs...)
+    isempty(probName) && (probName = replace(split(gmsName,"/")[end],".gms", ".jl"))
     gms = read_gms_file(gmsName)
-    write_julia_script(juliaName, gms, mode)
+    write_julia_script(probName, gms, mode)
 end

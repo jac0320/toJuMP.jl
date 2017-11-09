@@ -1,6 +1,6 @@
 module toJuMP
 
-using JSON
+using JSON, JuMP
 
 include("const.jl")
 include("types.jl")
@@ -11,5 +11,7 @@ include("gms2jump.jl")
 
 !isdir("$(Pkg.dir())/toJuMP/.jls") && mkdir("$(Pkg.dir())/toJuMP/.jls")
 !isdir("$(Pkg.dir())/toJuMP/.prob") && mkdir("$(Pkg.dir())/toJuMP/.prob")
+
+m_tester = Model()
 
 end # module

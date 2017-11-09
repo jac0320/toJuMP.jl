@@ -1,6 +1,7 @@
 const BLOCK_HEADER = ["Variables",
                       "Positive", # Variables
                       "Binary", # Variables
+                      "Integer",
                       "Equations"]
 
 const PROBTYPE = ["LP",      # Linear Programming
