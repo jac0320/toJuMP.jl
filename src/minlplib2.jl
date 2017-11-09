@@ -5,7 +5,7 @@ function minlplib2_download(pname::AbstractString; ptype="gms")
 
     download_fail = false
     try
-        filepath = joinpath(Pkg.dir("MINLPLib_jump"),".prob","")
+        filepath = joinpath(Pkg.dir("toJuMP"),".prob","")
         download(url, "$(filepath)$(pname).gms")
     catch e
         download_fail = true
@@ -18,12 +18,12 @@ end
 
 function minlplib2_meta(pname::AbstractString, show=true)
 
-    if !isfile("$(Pkg.dir())/MINLPLib_jump/.solvedata/minlplib2/$(pname).prop")
+    if !isfile("$(Pkg.dir())/toJuMP/.solvedata/minlplib2/$(pname).prop")
         show && info("No $(pname).prop found")
         return
     end
 
-    prop_f = open("$(Pkg.dir())/MINLPLib_jump/.solvedata/minlplib2/$(pname).prop", "r")
+    prop_f = open("$(Pkg.dir())/toJuMP/.solvedata/minlplib2/$(pname).prop", "r")
     prop_c = Dict()
 
     for l in readlines(prop_f)
@@ -48,8 +48,8 @@ function minlplib2_meta(pname::AbstractString, show=true)
 
     found = true
     i = 1
-    if isfile("$(Pkg.dir())/MINLPLib_jump/.solvedata/minlplib2/$(pname).p$(i).prop")
-        prop_f = open("$(Pkg.dir())/MINLPLib_jump/.solvedata/minlplib2/$(pname).p$(i).prop", "r")
+    if isfile("$(Pkg.dir())/toJuMP/.solvedata/minlplib2/$(pname).p$(i).prop")
+        prop_f = open("$(Pkg.dir())/toJuMP/.solvedata/minlplib2/$(pname).p$(i).prop", "r")
         for l in readlines(prop_f)
             sl = split(l)
             if length(sl) > 2
@@ -64,8 +64,8 @@ function minlplib2_meta(pname::AbstractString, show=true)
 
     obj_sense == :min ? bound = -Inf : bound = +Inf
     bound_solver = ""
-    if isfile("$(Pkg.dir())/MINLPLib_jump/.solvedata/minlplib2/$(pname).db")
-        dbf = open("$(Pkg.dir())/MINLPLib_jump/.solvedata/minlplib2/$(pname).db", "r")
+    if isfile("$(Pkg.dir())/toJuMP/.solvedata/minlplib2/$(pname).db")
+        dbf = open("$(Pkg.dir())/toJuMP/.solvedata/minlplib2/$(pname).db", "r")
         last_l = ""
         for l in readlines(dbf)
             sl = split(l)
@@ -116,7 +116,7 @@ end
 
 function minlplib2_match(kword::Vector)
 
-    ml2 = JSON.parsefile("$(Pkg.dir())/MINLPLib_jump/.solvedata/minlplib2.json")
+    ml2 = JSON.parsefile("$(Pkg.dir())/toJuMP/.solvedata/minlplib2.json")
     nlist = ml2["names"]
     tlist = Set()
 

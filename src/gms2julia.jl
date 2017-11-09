@@ -2,7 +2,7 @@ function read_gms_file(filename::AbstractString)
 
     info("Reading .gms file ...")
 
-    filepath = joinpath(Pkg.dir("MINLPLib_jump"),".gms","")
+    filepath = joinpath(Pkg.dir("toJuMP"),".gms","")
     filepath = string(filepath,filename,".gms")
     @show filepath
     if isfile(filepath)
@@ -231,8 +231,8 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
     options = Dict(kwargs)
 
     info(" --------- Start writing Julia script ---------")
-    !isdir("$(Pkg.dir())/MINLPLib_jump/.jls/fgms") && mkdir("$(Pkg.dir())/MINLPLib_jump/.jls/fgms")
-    filepath = joinpath(Pkg.dir("MINLPLib_jump"),".jls/fgms","")
+    !isdir("$(Pkg.dir())/toJuMP/.jls/fgms") && mkdir("$(Pkg.dir())/toJuMP/.jls/fgms")
+    filepath = joinpath(Pkg.dir("toJuMP"),".jls/fgms","")
     filepath = string(filepath, juliaName,".jl")
     f = open(filepath, "w")
 
