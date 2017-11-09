@@ -1,4 +1,3 @@
-
 function minlplib2_download(pname::AbstractString; ptype="gms")
 
     url = "http://www.gamsworld.org/minlp/minlplib2/data/$(ptype)/$(pname).$(ptype)"
