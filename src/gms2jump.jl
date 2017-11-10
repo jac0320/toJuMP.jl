@@ -124,10 +124,10 @@ function read_equation(file::IOStream, gms::oneProblem, lInit::AbstractString; k
     eS = split(eN, '.')
     if eN in gms.rows
         one_l = get_one_line(file, one_line=lInit)
-        sl = split(one_l, r" |,|=", keep=false)
+        sl = split(one_l, r" |=", keep=false)       # why do I had ',' as a deliminator there
         sl = [sl[i] for i in 1:length(sl) if !isempty(sl[i])]  # Eliminate empty entries
-        i = 2 # Default starting position for equations
-        while true # Concatenate the parsed elements
+        i = 2       # Default starting position for equations
+        while true  # Concatenate the parsed elements
             (i > length(sl)) && break # Multi-line expression
             if sl[i] in ["E", "L", "G"] && isempty(sense)
                 sense = sl[i]
@@ -142,8 +142,7 @@ function read_equation(file::IOStream, gms::oneProblem, lInit::AbstractString; k
                 i = i + 1
             else    # Implication
                 rhs = Float64(parse(sl[i]))
-                # A weak assertion :: eqach equation (stripped) ends with rhs
-                @assert i == length(sl)
+                @assert i == length(sl)# A weak assertion :: eqach equation (stripped) ends with rhs
                 gms.rowsRHS[eN] = rhs
                 break
             end
