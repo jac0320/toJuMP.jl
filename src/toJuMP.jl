@@ -14,4 +14,6 @@ include("gms2jump.jl")
 
 m_tester = Model()
 
+export gms2jump
+
 end # module

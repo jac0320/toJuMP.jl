@@ -1,6 +1,8 @@
 const BLOCK_HEADER = ["Variables",
                       "Positive", # Variables
+                      "Negative", # Variables
                       "Binary", # Variables
+                      "Semicont", #Variables
                       "Integer",
                       "Equations"]
 

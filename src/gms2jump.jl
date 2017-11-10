@@ -90,8 +90,12 @@ function read_block(file::IOStream, gms::oneProblem, lInit::AbstractString; kwar
             push!(gms.cols, sl[i])
         elseif blockIdentifier == "Positive" && (i > 2)
             gms.colsType[sl[i]] = "Positive"
+        elseif blockIdentifier == "Negative" && (i > 2)
+            gms.colsType[sl[i]] = "Negative"
         elseif blockIdentifier == "Binary" && (i > 2)
             gms.colsType[sl[i]] = "Binary"
+        elseif blockIdentifier == "Semicont"
+            error("Currently don't support semi continous variables parsing.")
         elseif blockIdentifier == "Integer" && (i > 2)
             gms.colsType[sl[i]] = "Integer"
         elseif blockIdentifier == "Equations" && (i > 1)
@@ -116,8 +120,9 @@ function read_equation(file::IOStream, gms::oneProblem, lInit::AbstractString; k
     lhs = ""
     rhs = ""
     sense = ""
-    eName = string(strip(split(lInit, r" |,")[1], '.'))
-    if eName in gms.rows   # TODO: This extra assertion can be elimated
+    eN = string(strip(split(lInit, r" |,")[1], '.'))
+    eS = split(eN, '.')
+    if eN in gms.rows
         one_l = get_one_line(file, one_line=lInit)
         sl = split(one_l, r" |,|=", keep=false)
         sl = [sl[i] for i in 1:length(sl) if !isempty(sl[i])]  # Eliminate empty entries
@@ -126,25 +131,30 @@ function read_equation(file::IOStream, gms::oneProblem, lInit::AbstractString; k
             (i > length(sl)) && break # Multi-line expression
             if sl[i] in ["E", "L", "G"] && isempty(sense)
                 sense = sl[i]
-                gms.rowsSense[eName] = sense    # Storing raw sense character
+                gms.rowsSense[eN] = sense    # Storing raw sense character
                 i = i + 1
             elseif sl[i] in ["E", "L", "G"] && !isempty(sense)
                 error("Already detected sense for this equation")
                 i = i + 1
             elseif !(sl[i] in ["E", "L", "G"]) && isempty(sense)
                 lhs = string(lhs, sl[i])
-                gms.rowsLHS[eName] = lhs
+                gms.rowsLHS[eN] = lhs
                 i = i + 1
             else    # Implication
                 rhs = Float64(parse(sl[i]))
                 # A weak assertion :: eqach equation (stripped) ends with rhs
                 @assert i == length(sl)
-                gms.rowsRHS[eName] = rhs
+                gms.rowsRHS[eN] = rhs
                 break
             end
         end
+    elseif length(eS) == 2 && eS[2] == "m"
+        @assert eS[1] in gms.rows
+        one_l = get_one_line(file, one_line=lInit)
+        mVal = parse(split(one_l, "=", keep=false)[2])
+        gms.m[eS[1]] = mVal
     else
-        error("Non-indexed constraint detected.\n$(lInit)")
+        error("Non-indexed constraint detected. \n$(lInit)")
     end
 
     return
@@ -158,7 +168,6 @@ function read_bounds(file::IOStream, gms::oneProblem, lInit::AbstractString; kwa
         .up upper bound
         .m marginal or dual value
     =#
-
     @assert rstrip(strip(lInit, '\n'), ' ')[end] == ';' # Assumption :: alwasy one line
     all_segs = split(lInit, ';', keep=false)
     all_segs = [i for i in all_segs if !isempty(strip(i,' '))]
@@ -252,12 +261,14 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
             if haskey(gms.colsType, var)
                 if gms.colsType[var] == "Positive"
                     write(f, "@variable(m, $(var)>=0)\n")
+                elseif gms.colsType[var] == "Negative"
+                    write(f, "@variable(m, $(var)<=0)\n")
                 elseif gms.colsType[var] == "Binary"
                     write(f, "@variable(m, $(var), Bin)\n")
                 elseif gms.colsType[var] == "Integer"
                     write(f, "@variable(m, $(var), Int)\n")
                 else
-                    error("ERROR|gms2julia.jl|write_julia_script()|Unsupported variable type.")
+                    error("ERROR|gms2jump.jl|write_julia_script()|Unsupported variable type.")
                 end
             else
                 write(f, "\t@variable(m, $(var))\n")
@@ -283,8 +294,10 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
                 write(f, "setcategory($(gms.cols2vars[col]), :Int)\n")
             elseif gms.colsType[col] == "Positive"
                 write(f, "setlowerbound($(gms.cols2vars[col]), 0.0)\n")
+            elseif gms.colsType[col] == "Negative"
+                write(f, "setupperbound($(gms.cols2vars[col]), 0.0)\n")
             else
-                error("ERROR|gms2julia.jl|write_julia_script()|Unsupported variable type.")
+                error("ERROR|gms2jump.jl|write_julia_script()|Unsupported variable type.")
             end
         end
     end
@@ -334,7 +347,7 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
                 write(f, "@NLconstraint(m, $(row), $(gms.rowsLHS[row]) >= $(gms.rowsRHS[row]))\n")
             end
         else
-            error("ERROR|gms2julia.jl|write_julia_script()|Unkown sense type. (Unlikely)")
+            error("ERROR|gms2jump.jl|write_julia_script()|Unkown sense type. (Unlikely)")
         end
     end
 
@@ -347,7 +360,7 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
         elseif gms.objSense == "minimizing"
             addNL ? write(f, "@NLobjective(m, Min, $(gms.objVar))\n") : write(f, "@objective(m, Min, $(gms.objVar))\n")
         else
-            error("ERROR|gms2julia.jl|write_julia_script()|Unkown objective sense.")
+            error("ERROR|gms2jump.jl|write_julia_script()|Unkown objective sense.")
         end
     else mode == "index"
         info("Writing objective section...")
@@ -357,7 +370,7 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
         elseif gms.objSense == "minimizing"
             addNL ? write(f, "@NLobjective(m, Min, $(gms.cols2vars[gms.objVar]))\n") : write(f, "@objective(m, Min, $(gms.cols2vars[gms.objVar]))\n")
         else
-            error("ERROR|gms2julia.jl|write_julia_script()|Unkown objective sense.")
+            error("ERROR|gms2jump.jl|write_julia_script()|Unkown objective sense.")
         end
     end
 
@@ -385,7 +398,7 @@ function parse_varname(gms::oneProblem)
                     gms.vars[varName] = []
                 end
                 if varIndex in gms.vars[varName]
-                    error("ERROR|gms2julia.jl|parse_varname()|Conflicting indice variable names")
+                    error("ERROR|gms2jump.jl|parse_varname()|Conflicting indice variable names")
                 end
                 push!(gms.vars[varName], varIndex)
                 gms.cols2vars[varString] = parse(string(varName, "[",varIndex,"]"))
@@ -394,7 +407,7 @@ function parse_varname(gms::oneProblem)
                 if !haskey(gms.vars, varName)
                     gms.vars[varName] = 0
                 else
-                    error("ERROR|gms2julia.jl|parse_varname()|Conflicting symbolic variable names.")
+                    error("ERROR|gms2jump.jl|parse_varname()|Conflicting symbolic variable names.")
                 end
                 gms.cols2vars[varString] = parse(varName)
                 gms.vars2cols[parse(varName)] = varString
@@ -406,7 +419,7 @@ function parse_varname(gms::oneProblem)
     end
 end
 
-function gms2julia(gmsName::AbstractString, probName::AbstractString="", mode::AbstractString="index"; kwargs...)
+function gms2jump(gmsName::AbstractString, probName::AbstractString="", mode::AbstractString="index"; kwargs...)
     isempty(probName) && (probName = replace(split(gmsName,"/")[end],".gms", ""))
     gms = read_gms_file(gmsName)
     write_julia_script(probName, gms, mode)
