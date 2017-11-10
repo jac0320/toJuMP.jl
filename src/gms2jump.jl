@@ -407,7 +407,7 @@ function parse_varname(gms::oneProblem)
 end
 
 function gms2julia(gmsName::AbstractString, probName::AbstractString="", mode::AbstractString="index"; kwargs...)
-    isempty(probName) && (probName = replace(split(gmsName,"/")[end],".gms", ".jl"))
+    isempty(probName) && (probName = replace(split(gmsName,"/")[end],".gms", ""))
     gms = read_gms_file(gmsName)
     write_julia_script(probName, gms, mode)
 end
