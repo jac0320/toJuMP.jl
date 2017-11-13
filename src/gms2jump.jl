@@ -1,6 +1,6 @@
 function read_gms_file(filename::AbstractString)
 
-    info("Reading .gms file ...")
+    info("Reading $(filename) ...")
 
     filepath = joinpath(Pkg.dir("toJuMP"),".gms","")
     filepath = string(filepath,filename,".gms")
@@ -46,7 +46,6 @@ function read_gms_file(filename::AbstractString)
 
     # -------------------------- Start Reading -------------------------- #
     for l in eachline(f)
-
         sl = lstrip(l, ' ')
         if isempty(sl) || length(sl) == 1  # Skip empty line
             skip += 1
@@ -124,30 +123,43 @@ function read_equation(file::IOStream, gms::oneProblem, lInit::AbstractString; k
     eS = split(eN, '.')
     if eN in gms.rows
         one_l = get_one_line(file, one_line=lInit)
-        sl = split(one_l, r" |,|=", keep=false)
-        sl = [sl[i] for i in 1:length(sl) if !isempty(sl[i])]  # Eliminate empty entries
-        i = 2 # Default starting position for equations
-        while true # Concatenate the parsed elements
-            (i > length(sl)) && break # Multi-line expression
-            if sl[i] in ["E", "L", "G"] && isempty(sense)
-                sense = sl[i]
-                gms.rowsSense[eN] = sense    # Storing raw sense character
-                i = i + 1
-            elseif sl[i] in ["E", "L", "G"] && !isempty(sense)
-                error("Already detected sense for this equation")
-                i = i + 1
-            elseif !(sl[i] in ["E", "L", "G"]) && isempty(sense)
-                lhs = string(lhs, sl[i])
-                gms.rowsLHS[eN] = lhs
-                i = i + 1
-            else    # Implication
-                rhs = Float64(parse(sl[i]))
-                # A weak assertion :: eqach equation (stripped) ends with rhs
-                @assert i == length(sl)
-                gms.rowsRHS[eN] = rhs
-                break
-            end
+        one_l = replace(one_l, "$(eN)..", "")
+        # sl = split(one_l, r" |=", keep=false)       # why do I had ',' as a deliminator there
+        # sl = [sl[i] for i in 1:length(sl) if !isempty(sl[i])]  # Eliminate empty entries
+        i = 2       # Default starting position for equations
+        if contains(one_l, "=E=")
+            gms.rowsSense[eN] = "E"
+        elseif contains(one_l, "=L=")
+            gms.rowsSense[eN] = "L"
+        elseif contains(one_l, "=G=")
+            gms.rowsSense[eN] = "G"
+        else
+            error("NO sense detected in equation. $(one_l)")
         end
+        sl = split(one_l, "=$(gms.rowsSense[eN])=", keep=false)
+        gms.rowsLHS[eN] = replace(sl[1], " ", "")
+        gms.rowsRHS[eN] = Float64(parse(sl[2]))
+
+        # while true  # Concatenate the parsed elements
+        #     (i > length(sl)) && break
+        #     if sl[i] in ["E", "L", "G"] && isempty(sense)
+        #         sense = sl[i]
+        #         gms.rowsSense[eN] = sense    # Storing raw sense character
+        #         i = i + 1
+        #     elseif sl[i] in ["E", "L", "G"] && !isempty(sense)
+        #         error("Already detected sense for this equation")
+        #         i = i + 1
+        #     elseif !(sl[i] in ["E", "L", "G"]) && isempty(sense)
+        #         lhs = string(lhs, sl[i])
+        #         gms.rowsLHS[eN] = lhs
+        #         i = i + 1
+        #     else    # Implication
+        #         rhs = Float64(parse(sl[i]))
+        #         @assert i == length(sl)# A weak assertion :: eqach equation (stripped) ends with rhs
+        #         gms.rowsRHS[eN] = rhs
+        #         break
+        #     end
+        # end
     elseif length(eS) == 2 && eS[2] == "m"
         @assert eS[1] in gms.rows
         one_l = get_one_line(file, one_line=lInit)
@@ -243,12 +255,12 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
     end
 
     options = Dict(kwargs)
-    m_tester = Model()
 
     info(" --------- Start writing Julia script ---------")
     filepath = joinpath(Pkg.dir("toJuMP"),".jls/","")
     filepath = string(filepath, juliaName,".jl")
     f = open(filepath, "w")
+    # toJuMP.m_tester = Model()
 
     info("Writing headers...")
     write(f, "using JuMP\n\n")

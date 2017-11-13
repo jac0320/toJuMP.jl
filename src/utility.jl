@@ -88,7 +88,8 @@ function replace_oprs(line::AbstractString; kwargs...)
 
     line = replace(line, "\n", "")
     line = replace(line, " ", "")
-    line = _replace_sqr(line)
+    contains(line, "sqr") && (line = _replace_sqr(line))
+    contains(line, "POWER") && (line = _replace_POWER(line))
     line = replace(line, "**", "^")
 
     return line
@@ -98,7 +99,6 @@ function _replace_sqr(str::AbstractString)
     # @show "Begin ",str
     for i in 1:(length(str)-4)
         if str[i:(i+3)] == "sqr("
-            # @show "Found sqr("
             warp = 0
             for j in (i+4):length(str)
                 if str[j] == '('
@@ -114,16 +114,52 @@ function _replace_sqr(str::AbstractString)
                     str = replace(str, "sqr($subStr)"," ($subStr)^2")
                     # @show "After replace ", str
                     subStr = str[substart-2:subclose-2]
-                    # @show "Before sending ", subStr
                     subStr = _replace_sqr(subStr)
                     # @show "Processed subStr = ", subStr
                     str = string(str[1:substart-3], subStr, str[subclose-1:end])
                     # @show "After recomposing", length(str)
+                    break
                 end
             end
         end
     end
     # @show "exiting this level with ", str
+    return str
+end
+
+function _replace_POWER(str::AbstractString)
+    pVal = 0.0
+    for i in 1:length(str)-6
+        if str[i:(i+5)] == "POWER("
+            warp = 0
+            pValStart = 0
+            for j in (i+6):length(str)
+                if str[j] == '('
+                    warp += 1
+                elseif str[j] == ')'
+                    warp -= 1
+                elseif str[j] == ','
+                    pValStart = j
+                end
+                if warp == -1
+                    @assert pValStart > 0   # By the time a function is closed, pVal segment must be detected
+                    substart = i+6
+                    subclose = j-1
+                    subStr = str[substart:subclose]
+                    argStr = str[substart:(pValStart-1)]
+                    pVal = parse(str[pValStart+1:subclose])   # Don't allow complicated expression here
+                    str = replace(str, "POWER($subStr)"," ($argStr)^$(pVal)")
+                    subStr = str[substart-5:subclose-2]
+                    subStr = _replace_POWER(subStr)
+                    str = string(str[1:substart-6], subStr, str[subclose-1:end])
+                    i = substart + 1 # Dail back the looper due to the reduced length of string
+                    break
+                end
+            end
+        end
+        i > length(str)-6 && break
+    end
+
     return str
 end
 

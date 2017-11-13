@@ -14,7 +14,7 @@ To convert a *.gms file into a JuMP model script:
 ```
 gms2jump("*.gms")
 ```
-Find you scrip in `Pkg.dir()/toJuMP/.jl/`.
+Find you scrip in `Pkg.dir()/toJuMP/.jls/`.
 
 Currently, level/primal value and marginal/dual value will be ingored during the conversion.
 Also, semi-continous variable is not supported at the moment.
