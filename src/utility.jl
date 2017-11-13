@@ -152,6 +152,7 @@ function _replace_POWER(str::AbstractString)
                     subStr = str[substart-5:subclose-2]
                     subStr = _replace_POWER(subStr)
                     str = string(str[1:substart-6], subStr, str[subclose-1:end])
+                    i = substart + 1 # Dail back the looper due to the reduced length of string
                     break
                 end
             end
