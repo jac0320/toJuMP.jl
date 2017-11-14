@@ -4,10 +4,13 @@ end
 
 load_prob(probname::Vector{AbstractString}) = for i in probname load_prob(i) end
 
-function try_iflinear(c::AbstractString)
+function try_iflinear(c::AbstractString, quadNL::Bool=false)
     linear = true
     try
-        eval(parse(c))
+        con = eval(parse(c))
+        if quadNL && isa(con, JuMP.ConstraintRef{JuMP.Model,JuMP.GenericQuadConstraint{JuMP.GenericQuadExpr{Float64,JuMP.Variable}}})
+            linear = false
+        end
     catch e
         linear = false
     end

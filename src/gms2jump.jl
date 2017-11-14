@@ -247,7 +247,7 @@ function read_solve(file::IOStream, gms::oneProblem, lInit::AbstractString; kwar
     end
 end
 
-function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="index"; kwargs...)
+function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="index";quadNL=false, kwargs...)
 
     if mode == "index"
         parse_varname(gms)
@@ -339,21 +339,21 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
     for row in gms.rows
         if gms.rowsSense[row] == "E"
             gms.rowsLHS[row] = replace_oprs(gms.rowsLHS[row])
-            if try_iflinear("@constraint(m_tester, $(gms.rowsLHS[row]) == $(gms.rowsRHS[row]))\n")
+            if try_iflinear("@constraint(m_tester, $(gms.rowsLHS[row]) == $(gms.rowsRHS[row]))\n", quadNL)
                 write(f, "@constraint(m, $(row), $(gms.rowsLHS[row]) == $(gms.rowsRHS[row]))\n")
             else
                 write(f, "@NLconstraint(m, $(row), $(gms.rowsLHS[row]) == $(gms.rowsRHS[row]))\n")
             end
         elseif gms.rowsSense[row] == "L"
             gms.rowsLHS[row] = replace_oprs(gms.rowsLHS[row])
-            if try_iflinear("@constraint(m_tester, $(gms.rowsLHS[row]) <= $(gms.rowsRHS[row]))\n")
+            if try_iflinear("@constraint(m_tester, $(gms.rowsLHS[row]) <= $(gms.rowsRHS[row]))\n", quadNL)
                 write(f, "@constraint(m, $(row), $(gms.rowsLHS[row]) <= $(gms.rowsRHS[row]))\n")
             else
                 write(f, "@NLconstraint(m, $(row), $(gms.rowsLHS[row]) <= $(gms.rowsRHS[row]))\n")
             end
         elseif gms.rowsSense[row] == "G"
             gms.rowsLHS[row] = replace_oprs(gms.rowsLHS[row])
-            if try_iflinear("@constraint(m_tester, $(gms.rowsLHS[row]) >= $(gms.rowsRHS[row]))\n")
+            if try_iflinear("@constraint(m_tester, $(gms.rowsLHS[row]) >= $(gms.rowsRHS[row]))\n", quadNL)
                 write(f, "@constraint(m, $(row), $(gms.rowsLHS[row]) >= $(gms.rowsRHS[row]))\n")
             else
                 write(f, "@NLconstraint(m, $(row), $(gms.rowsLHS[row]) >= $(gms.rowsRHS[row]))\n")
@@ -431,8 +431,11 @@ function parse_varname(gms::oneProblem)
     end
 end
 
-function gms2jump(gmsName::AbstractString, probName::AbstractString="", mode::AbstractString="index"; kwargs...)
+function gms2jump(gmsName::AbstractString, probName::AbstractString="";
+                    mode::AbstractString="index",
+                    quadNL::Bool=false,
+                    kwargs...)
     isempty(probName) && (probName = replace(split(gmsName,"/")[end],".gms", ""))
     gms = read_gms_file(gmsName)
-    write_julia_script(probName, gms, mode)
+    write_julia_script(probName, gms, mode, quadNL=quadNL)
 end
