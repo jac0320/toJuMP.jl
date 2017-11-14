@@ -131,7 +131,7 @@ function _replace_POWER(str::AbstractString)
     pVal = 0.0
     for i in 1:length(str)-6
         if str[i:(i+5)] == "POWER("
-            warp = 0
+            warp = 1
             pValStart = 0
             for j in (i+6):length(str)
                 if str[j] == '('
@@ -141,7 +141,7 @@ function _replace_POWER(str::AbstractString)
                 elseif str[j] == ','
                     pValStart = j
                 end
-                if warp == -1
+                if warp == 0
                     @assert pValStart > 0   # By the time a function is closed, pVal segment must be detected
                     substart = i+6
                     subclose = j-1
@@ -149,9 +149,9 @@ function _replace_POWER(str::AbstractString)
                     argStr = str[substart:(pValStart-1)]
                     pVal = parse(str[pValStart+1:subclose])   # Don't allow complicated expression here
                     str = replace(str, "POWER($subStr)"," ($argStr)^$(pVal)")
-                    subStr = str[substart-5:subclose-2]
+                    subStr = str[substart-5:subclose-5]
                     subStr = _replace_POWER(subStr)
-                    str = string(str[1:substart-6], subStr, str[subclose-1:end])
+                    str = string(str[1:substart-6], subStr, str[subclose-4:end])
                     i = substart + 1 # Dail back the looper due to the reduced length of string
                     break
                 end
