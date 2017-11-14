@@ -180,8 +180,6 @@ function read_bounds(file::IOStream, gms::oneProblem, lInit::AbstractString; kwa
         .up upper bound
         .m marginal or dual value
     =#
-    @show lInit
-    @show rstrip(strip(lInit, '\n'), ' ')[end]
     @assert rstrip(strip(lInit, '\n'), ' ')[end] == ';' # Assumption :: alwasy one line
     all_segs = split(lInit, ';', keep=false)
     all_segs = [i for i in all_segs if !isempty(strip(i,' '))]
