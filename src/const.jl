@@ -16,6 +16,7 @@ const PROBTYPE = ["LP",      # Linear Programming
                   "MINLP",   # Mixed Integer Nonlinear Programming
                   "RMIQCP",  # Relaxed Mixed Integer Quadratic Constraint Programming
                   "RMINLP",  # Relaxed Mixed Integer Nonlinear Programming
-                  "MCP",     #
-                  "MPEC",
-                  "CNS"]
+                  "MCP",     # Mixed Complementarity Problem
+                  "MPEC",	 # Mathematical Program iwth equilibrium Constraints 
+                  "CNS"		 # Constrained Nonlinear System
+				  ]

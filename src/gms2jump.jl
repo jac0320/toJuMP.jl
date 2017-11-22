@@ -73,7 +73,6 @@ function read_gms_file(filename::AbstractString)
 
     end
     close(f)
-
     return gms
 end
 
@@ -119,47 +118,25 @@ function read_equation(file::IOStream, gms::oneProblem, lInit::AbstractString; k
     lhs = ""
     rhs = ""
     sense = ""
-    eN = string(strip(split(lInit, r" |,")[1], '.'))
+	eN = string(strip(split(lInit, r" |,")[1], ['.', '\r', '\n']))
     eS = split(eN, '.')
     if eN in gms.rows
         one_l = get_one_line(file, one_line=lInit)
         one_l = replace(one_l, "$(eN)..", "")
-        # sl = split(one_l, r" |=", keep=false)       # why do I had ',' as a deliminator there
-        # sl = [sl[i] for i in 1:length(sl) if !isempty(sl[i])]  # Eliminate empty entries
-        i = 2       # Default starting position for equations
         if contains(one_l, "=E=")
             gms.rowsSense[eN] = "E"
         elseif contains(one_l, "=L=")
             gms.rowsSense[eN] = "L"
         elseif contains(one_l, "=G=")
             gms.rowsSense[eN] = "G"
+		elseif contains(one_l, "=N=")
+			gms.rowsSense[eN] = "N"
         else
             error("NO sense detected in equation. $(one_l)")
         end
         sl = split(one_l, "=$(gms.rowsSense[eN])=", keep=false)
         gms.rowsLHS[eN] = replace(sl[1], " ", "")
         gms.rowsRHS[eN] = Float64(parse(sl[2]))
-
-        # while true  # Concatenate the parsed elements
-        #     (i > length(sl)) && break
-        #     if sl[i] in ["E", "L", "G"] && isempty(sense)
-        #         sense = sl[i]
-        #         gms.rowsSense[eN] = sense    # Storing raw sense character
-        #         i = i + 1
-        #     elseif sl[i] in ["E", "L", "G"] && !isempty(sense)
-        #         error("Already detected sense for this equation")
-        #         i = i + 1
-        #     elseif !(sl[i] in ["E", "L", "G"]) && isempty(sense)
-        #         lhs = string(lhs, sl[i])
-        #         gms.rowsLHS[eN] = lhs
-        #         i = i + 1
-        #     else    # Implication
-        #         rhs = Float64(parse(sl[i]))
-        #         @assert i == length(sl)# A weak assertion :: eqach equation (stripped) ends with rhs
-        #         gms.rowsRHS[eN] = rhs
-        #         break
-        #     end
-        # end
     elseif length(eS) == 2 && eS[2] == "m"
         @assert eS[1] in gms.rows
         one_l = get_one_line(file, one_line=lInit)
@@ -180,16 +157,16 @@ function read_bounds(file::IOStream, gms::oneProblem, lInit::AbstractString; kwa
         .up upper bound
         .m marginal or dual value
     =#
-    @assert rstrip(strip(lInit, '\n'), ' ')[end] == ';' # Assumption :: alwasy one line
+	@assert rstrip(strip(lInit, ['\n','\r']), ' ')[end] == ';' # Assumption :: alwasy one line
     all_segs = split(lInit, ';', keep=false)
     all_segs = [i for i in all_segs if !isempty(strip(i,' '))]
     for lseg in all_segs
-        lseg = strip(lseg, [';', '\n', ' '])
+        lseg = strip(lseg, [';', '\n', ' ', '\r'])
         sl = split(lseg, "=")
         sl = [sl[i] for i in 1:length(sl) if !isempty(sl[i])]
         # There shouldn't be any space to begin with
-        sl[1] = strip(sl[1], [';', '\n', ' '])
-        sl[2] = strip(sl[2], [';', '\n', ' '])
+        sl[1] = strip(sl[1], [';', '\n', ' ', '\r'])
+		sl[2] = strip(sl[2], [';', '\n', ' ', '\r'])
         @assert ismatch(r"\w.\w", sl[1])
         boundVal = Float64(parse(sl[end]))
         var = split(sl[1],".")[1]
@@ -214,8 +191,8 @@ end
 function read_model(file::IOStream, gms::oneProblem, lInit::AbstractString; kwargs...)
 
     # Assume this will always be one line
-    @assert strip(lInit, '\n')[end] == ';'
-    sl = split(strip(lInit,[';','\n']), r" |,")
+	@assert strip(lInit, ['\n','\r'])[end] == ';'
+    sl = split(strip(lInit,[';','\n','\r']), r" |,")
     @assert sl[1] == "Model"  # Already did outside
     # Not sure if the information stored here is useful or not.
     for i in 1:length(sl)
@@ -229,9 +206,9 @@ end
 
 function read_solve(file::IOStream, gms::oneProblem, lInit::AbstractString; kwargs...)
 
-    @assert strip(lInit, '\n')[end] == ';'
+	@assert strip(lInit, ['\n','\r'])[end] == ';'
 
-    sl = split(strip(lInit, [';','\n']), r" |,")
+    sl = split(strip(lInit, [';','\n','\r']), r" |,")
     @assert sl[1] == "Solve"
 
     for i in 1:length(sl)
@@ -247,7 +224,7 @@ function read_solve(file::IOStream, gms::oneProblem, lInit::AbstractString; kwar
     end
 end
 
-function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="index"; kwargs...)
+function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="index";quadNL=false, outdir="", kwargs...)
 
     if mode == "index"
         parse_varname(gms)
@@ -257,10 +234,10 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
     options = Dict(kwargs)
 
     info(" --------- Start writing Julia script ---------")
-    filepath = joinpath(Pkg.dir("toJuMP"),".jls/","")
-    filepath = string(filepath, juliaName,".jl")
-    f = open(filepath, "w")
-    # toJuMP.m_tester = Model()
+    filepath = joinpath(Pkg.dir("toJuMP"),".jls","")
+	!isdir(joinpath(filepath,outdir)) && mkdir(joinpath(filepath,outdir))
+	filepath = joinpath(filepath, outdir)
+	f = open("$(filepath)/$(juliaName).jl", "w")
 
     info("Writing headers...")
     write(f, "using JuMP\n\n")
@@ -337,27 +314,31 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
 
     info("Writing Constraints...")
     for row in gms.rows
+		@show "Working on $row"
         if gms.rowsSense[row] == "E"
             gms.rowsLHS[row] = replace_oprs(gms.rowsLHS[row])
-            if try_iflinear("@constraint(m_tester, $(gms.rowsLHS[row]) == $(gms.rowsRHS[row]))\n")
+            if try_iflinear("@constraint(m_tester, $(gms.rowsLHS[row]) == $(gms.rowsRHS[row]))\n", quadNL)
                 write(f, "@constraint(m, $(row), $(gms.rowsLHS[row]) == $(gms.rowsRHS[row]))\n")
             else
                 write(f, "@NLconstraint(m, $(row), $(gms.rowsLHS[row]) == $(gms.rowsRHS[row]))\n")
             end
         elseif gms.rowsSense[row] == "L"
             gms.rowsLHS[row] = replace_oprs(gms.rowsLHS[row])
-            if try_iflinear("@constraint(m_tester, $(gms.rowsLHS[row]) <= $(gms.rowsRHS[row]))\n")
+            if try_iflinear("@constraint(m_tester, $(gms.rowsLHS[row]) <= $(gms.rowsRHS[row]))\n", quadNL)
                 write(f, "@constraint(m, $(row), $(gms.rowsLHS[row]) <= $(gms.rowsRHS[row]))\n")
             else
                 write(f, "@NLconstraint(m, $(row), $(gms.rowsLHS[row]) <= $(gms.rowsRHS[row]))\n")
             end
         elseif gms.rowsSense[row] == "G"
             gms.rowsLHS[row] = replace_oprs(gms.rowsLHS[row])
-            if try_iflinear("@constraint(m_tester, $(gms.rowsLHS[row]) >= $(gms.rowsRHS[row]))\n")
+            if try_iflinear("@constraint(m_tester, $(gms.rowsLHS[row]) >= $(gms.rowsRHS[row]))\n", quadNL)
                 write(f, "@constraint(m, $(row), $(gms.rowsLHS[row]) >= $(gms.rowsRHS[row]))\n")
             else
                 write(f, "@NLconstraint(m, $(row), $(gms.rowsLHS[row]) >= $(gms.rowsRHS[row]))\n")
             end
+		elseif gms.rowsSense[row] == "N"
+            gms.rowsLHS[row] = replace_oprs(gms.rowsLHS[row])
+            write(f, "#@constraint(m, $(row), $(gms.rowsLHS[row]) =N= $(gms.rowsRHS[row]))\n")
         else
             error("ERROR|gms2jump.jl|write_julia_script()|Unkown sense type. (Unlikely)")
         end
@@ -368,9 +349,9 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
         info("Writing objective section...")
         addNL = try_iflinear("@objective(m, Max, $(gms.objVar))\n")
         if gms.objSense == "maximizing"
-            addNL ? write(f, "@NLobjective(m, Max, $(gms.objVar))\n") : write(f, "@objective(m, Max, $(gms.objVar))\n")
+            addNL ? write(f, "@NLobjective(m, Max, $(gms.objVar))\n\n") : write(f, "@objective(m, Max, $(gms.objVar))\n\n")
         elseif gms.objSense == "minimizing"
-            addNL ? write(f, "@NLobjective(m, Min, $(gms.objVar))\n") : write(f, "@objective(m, Min, $(gms.objVar))\n")
+            addNL ? write(f, "@NLobjective(m, Min, $(gms.objVar))\n\n") : write(f, "@objective(m, Min, $(gms.objVar))\n\n")
         else
             error("ERROR|gms2jump.jl|write_julia_script()|Unkown objective sense.")
         end
@@ -378,9 +359,9 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
         info("Writing objective section...")
         addNL = try_iflinear("@objective(m, Max, $(gms.cols2vars[gms.objVar]))\n")
         if gms.objSense == "maximizing"
-            addNL ? write(f, "@NLobjective(m, Max, $(gms.cols2vars[gms.objVar]))\n") : write(f, "@objective(m, Max, $(gms.cols2vars[gms.objVar]))\n")
+            addNL ? write(f, "@NLobjective(m, Max, $(gms.cols2vars[gms.objVar]))\n\n") : write(f, "@objective(m, Max, $(gms.cols2vars[gms.objVar]))\n\n")
         elseif gms.objSense == "minimizing"
-            addNL ? write(f, "@NLobjective(m, Min, $(gms.cols2vars[gms.objVar]))\n") : write(f, "@objective(m, Min, $(gms.cols2vars[gms.objVar]))\n")
+            addNL ? write(f, "@NLobjective(m, Min, $(gms.cols2vars[gms.objVar]))\n\n") : write(f, "@objective(m, Min, $(gms.cols2vars[gms.objVar]))\n\n")
         else
             error("ERROR|gms2jump.jl|write_julia_script()|Unkown objective sense.")
         end
@@ -431,8 +412,12 @@ function parse_varname(gms::oneProblem)
     end
 end
 
-function gms2jump(gmsName::AbstractString, probName::AbstractString="", mode::AbstractString="index"; kwargs...)
+function gms2jump(gmsName::AbstractString, probName::AbstractString="";
+                    mode::AbstractString="index",
+                    quadNL::Bool=false,
+					outdir::AbstractString="",
+                    kwargs...)
     isempty(probName) && (probName = replace(split(gmsName,"/")[end],".gms", ""))
     gms = read_gms_file(gmsName)
-    write_julia_script(probName, gms, mode)
+    write_julia_script(probName, gms, mode, quadNL=quadNL, outdir=outdir)
 end
