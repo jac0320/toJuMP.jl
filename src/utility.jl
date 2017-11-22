@@ -5,6 +5,9 @@ end
 load_prob(probname::Vector{AbstractString}) = for i in probname load_prob(i) end
 
 function try_iflinear(c::AbstractString, quadNL::Bool=false)
+	contains(c, "sqrt") && return false
+	contains(c, "^") && return false
+	contains(c, "abs") && return false
     linear = true
     try
         con = eval(parse(c))
@@ -29,43 +32,6 @@ function try_addvar(m_t, var::AbstractString)
     return m
 end
 
-function store_history(expname="default", hpc_type="slurm", instances::Any=[], solver_options=Dict(), hpc_options=Dict(), jobname=""; kwargs...)
-
-    label = split(string(now()),".")[1]
-    ext = Dict(kwargs)
-    exp_info = Dict("instance"=>instances,
-                    "solver_options"=>solver_options,
-                    "hpc_options"=>hpc_options,
-                    "label"=>label,
-                    "ext"=>ext,
-                    "jobname"=>jobname)
-
-    history_json = open("$(Pkg.dir())/toJuMP/.history/$(expname)_$(label).json", "w")
-    JSON.print(history_json, exp_info)
-    close(history_json)
-
-    return
-end
-
-function clear_cache()
-
-    all_jls_dir = glob("*", "$(Pkg.dir())/toJuMP/.jls/")
-    all_prob_dir = glob("*", "$(Pkg.dir())/toJuMP/.prob/")
-
-    if !isempty(all_jls_dir)
-        for i in all_jls_dir
-            rm(i, recursive=true)
-        end
-    end
-
-    if !isempty(all_prob_dir)
-        for i in all_prob_dir
-            rm(i)
-        end
-    end
-
-    return
-end
 
 function get_one_line(file::IOStream; one_line=" ")
     while one_line[end] != ';'
@@ -81,9 +47,9 @@ end
 """
 function replace_vars(gms::oneProblem)
     for row in gms.rows
-        for i in length(gms.cols):-1:1
-            gms.rowsLHS[row] = replace(gms.rowsLHS[row], gms.cols[i], string(gms.cols2vars[gms.cols[i]]))
-        end
+		gms.rowsLHS[row] = replace(gms.rowsLHS[row], r"x(\d+)", s"x[\1]")
+		gms.rowsLHS[row] = replace(gms.rowsLHS[row], r"i(\d+)", s"i[\1]")
+		gms.rowsLHS[row] = replace(gms.rowsLHS[row], r"b(\d+)", s"b[\1]")
     end
 end
 
@@ -93,7 +59,25 @@ function replace_oprs(line::AbstractString; kwargs...)
     line = replace(line, " ", "")
     contains(line, "sqr") && (line = _replace_sqr(line))
     contains(line, "POWER") && (line = _replace_POWER(line))
+	contains(line, "power") && (line = _replace_POWER(line,powerstring="power("))
     line = replace(line, "**", "^")
+
+	unsupported_opr = ["arctan", "ARCTAN", 
+					   "ceil", "CEIL",
+					   "errorof", "ERROROF",
+					   "floor", "FLOOR",
+					   "mapVal", "MAPVAL",
+					   "max", "MAX",
+					   "min", "MIN",
+					   "mod", "MOD",
+					   "normal", "NORMAL",
+					   "round", "ROUND",
+					   "sign", "SIGN",
+					   "trunc", "TRUNC",
+					   "uniform", "UNIFORM"]
+	for o in unsupported_opr
+		contains(line, o) && error("Unsupported operator $(o) detected")
+	end
 
     return line
 end
@@ -130,10 +114,10 @@ function _replace_sqr(str::AbstractString)
     return str
 end
 
-function _replace_POWER(str::AbstractString)
+function _replace_POWER(str::AbstractString; powerstring="POWER(")
     pVal = 0.0
     for i in 1:length(str)-6
-        if str[i:(i+5)] == "POWER("
+        if str[i:(i+5)] == powerstring
             warp = 1
             pValStart = 0
             for j in (i+6):length(str)
@@ -151,7 +135,7 @@ function _replace_POWER(str::AbstractString)
                     subStr = str[substart:subclose]
                     argStr = str[substart:(pValStart-1)]
                     pVal = parse(str[pValStart+1:subclose])   # Don't allow complicated expression here
-                    str = replace(str, "POWER($subStr)"," ($argStr)^$(pVal)")
+					str = replace(str, "$(powerstring)$(subStr))"," ($argStr)^$(pVal)")
                     subStr = str[substart-5:subclose-5]
                     subStr = _replace_POWER(subStr)
                     str = string(str[1:substart-6], subStr, str[subclose-4:end])
