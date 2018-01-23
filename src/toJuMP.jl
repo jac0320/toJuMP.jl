@@ -1,6 +1,7 @@
 module toJuMP
 
-using JSON, JuMP
+using JuMP
+using JSON
 
 include("const.jl")
 include("types.jl")

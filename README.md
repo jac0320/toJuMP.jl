@@ -1,5 +1,8 @@
 # toJuMP.jl
 
+Dev: [![Build Status](https://travis-ci.org/jac0320/toJuMP.jl.svg?branch=master)](https://travis-ci.org/jac0320/toJuMP.jl)
+[![codecov](https://codecov.io/gh/jac0320/toJuMP.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/jac0320/toJuMP.jl)
+
 This is a small tool that converts different optimization format into a JuMP model script.
 You will find these tools useful as you are benchmarking using some instance library.
 

@@ -12,6 +12,9 @@ type oneProblem
     l           ::Dict          # Level or primal value
     m           ::Dict          # Marginal or dual value
     fx          ::Dict          # Fixed value
+    scale       ::Dict          # Numercial scaling factor [RARE]
+    prior       ::Dict          # Branching priority
+    stage       ::Dict          # Block structure stage
     rowsLHS     ::Dict          # LHS of constraints TODO: make it expresion
     rowsRHS     ::Dict          # RHS of constraints TODO: make sure rhs is always a value
     rowsSense   ::Dict          # Equation Sense
@@ -24,7 +27,7 @@ type oneProblem
     partVars    ::Array
     oneProblem() = new("", "", "", "", "",
                         [], [],
-                        Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(),
+                        Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(),
                         [],
                         Dict(), Dict(), Dict(), Dict(),
                         [])

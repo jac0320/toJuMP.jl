@@ -182,6 +182,14 @@ function read_bounds(file::IOStream, gms::oneProblem, lInit::AbstractString; kwa
             gms.ub[var] = boundVal
         elseif attr == "m"
             gms.m[var] = boundVal
+        elseif attr == "scale"
+            gms.scale[var] = boundVal
+        elseif attr == "prior"
+            gms.prior[var] = boundVal
+        elseif attr == "stage"
+            gms.prior[var] = boundVal
+        else
+            error("Unknown variable attribute. Consult gams hand-book for definition and report this issue.")
         end
     end
 
@@ -224,7 +232,7 @@ function read_solve(file::IOStream, gms::oneProblem, lInit::AbstractString; kwar
     end
 end
 
-function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="index";quadNL=false, outdir="", kwargs...)
+function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="index"; ending="m=m", quadNL=false, outdir="", kwargs...)
 
     if mode == "index"
         parse_varname(gms)
@@ -232,12 +240,11 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
     end
 
     options = Dict(kwargs)
+    clear_m_tester()
 
     info(" --------- Start writing Julia script ---------")
-    filepath = joinpath(Pkg.dir("toJuMP"),".jls","")
-	!isdir(joinpath(filepath,outdir)) && mkdir(joinpath(filepath,outdir))
-	filepath = joinpath(filepath, outdir)
-	f = open("$(filepath)/$(juliaName).jl", "w")
+    isempty(outdir) ? filedir = joinpath(Pkg.dir("toJuMP"),".jls") : filedir = outdir
+	f = open("$(filedir)/$(juliaName).jl", "w")
 
     info("Writing headers...")
     write(f, "using JuMP\n\n")
@@ -308,13 +315,23 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
             write(f, "setlowerbound($(colName), $(gms.fx[col]))\n")
             write(f, "setupperbound($(colName), $(gms.fx[col]))\n")
         end
+        if haskey(gms.l, col)
+            write(f, "setvalue($(colName), $(gms.l[col]))\n")
+        end
+        if haskey(gms.prior, col)
+            warning("Branching priority indicated in gms file. This behavior is solver dependent in JuMP. Consider implement them for exact gms instruction.")
+        end
+        if haskey(gms.scale, col)
+            error("variable scaling applied in gms file. Don't know how to handle this one.")
+        end
+        if haskey(gms.stage, col)
+            warning("Stage variable attribute indicated in gms file. Generic JuMP doesn't support his. Consider StructJuMP.jl for this implementation.")
+        end
     end
 
-    write(f, string("\n\n# ----- Constraints ----- #\n"))
-
     info("Writing Constraints...")
+    write(f, string("\n\n# ----- Constraints ----- #\n"))
     for row in gms.rows
-		@show "Working on $row"
         if gms.rowsSense[row] == "E"
             gms.rowsLHS[row] = replace_oprs(gms.rowsLHS[row])
             if try_iflinear("@constraint(m_tester, $(gms.rowsLHS[row]) == $(gms.rowsRHS[row]))\n", quadNL)
@@ -367,57 +384,19 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
         end
     end
 
-    write(f, "m = m \t\t # model get returned when including this script. \n")
+    write(f, "# == Ending section == #\n")
+    write(f, "$(ending) \n")
     info(" --------- Finish writing Julia script ---------")
     close(f)
 
     return 0
 end
 
-"""
-    Takes .gms variable name like "\w+\d+" and get the both part
-"""
-function parse_varname(gms::oneProblem)
+function gms2jump(gmsPath::AbstractString; mode::AbstractString="index", ending="m=m", quadNL::Bool=false, outdir::AbstractString="")
 
-    if isempty(gms.vars)
-
-        for varString in gms.cols
-            varName = split(varString, r"\d+")[1]
-            if varName != varString
-                varSplit = split(varString, varName)
-                varIndex = parse(varSplit[2])
-                @assert isa(varIndex, Int)
-                if !haskey(gms.vars, varName)
-                    gms.vars[varName] = []
-                end
-                if varIndex in gms.vars[varName]
-                    error("ERROR|gms2jump.jl|parse_varname()|Conflicting indice variable names")
-                end
-                push!(gms.vars[varName], varIndex)
-                gms.cols2vars[varString] = parse(string(varName, "[",varIndex,"]"))
-                gms.vars2cols[parse(string(varName,"[",varIndex,"]"))] = varString
-            else
-                if !haskey(gms.vars, varName)
-                    gms.vars[varName] = 0
-                else
-                    error("ERROR|gms2jump.jl|parse_varname()|Conflicting symbolic variable names.")
-                end
-                gms.cols2vars[varString] = parse(varName)
-                gms.vars2cols[parse(varName)] = varString
-            end
-
-        end
-    else
-        return 0
-    end
-end
-
-function gms2jump(gmsName::AbstractString, probName::AbstractString="";
-                    mode::AbstractString="index",
-                    quadNL::Bool=false,
-					outdir::AbstractString="",
-                    kwargs...)
-    isempty(probName) && (probName = replace(split(gmsName,"/")[end],".gms", ""))
-    gms = read_gms_file(gmsName)
+    probName = replace(splitdir(gmsPath)[end],".gms", "")
+    gms = read_gms_file(gmsPath)
     write_julia_script(probName, gms, mode, quadNL=quadNL, outdir=outdir)
+
+    return
 end

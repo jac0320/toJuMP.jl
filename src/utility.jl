@@ -62,7 +62,7 @@ function replace_oprs(line::AbstractString; kwargs...)
 	contains(line, "power") && (line = _replace_POWER(line,powerstring="power("))
     line = replace(line, "**", "^")
 
-	unsupported_opr = ["arctan", "ARCTAN", 
+	unsupported_opr = ["arctan", "ARCTAN",
 					   "ceil", "CEIL",
 					   "errorof", "ERROROF",
 					   "floor", "FLOOR",
@@ -185,5 +185,48 @@ function convert_equality(probname="")
     close(f)
     close(outf)
 
+    return
+end
+
+function parse_varname(gms::oneProblem)
+
+    if isempty(gms.vars)
+
+        for varString in gms.cols
+            varName = split(varString, r"\d+")[1]
+            if varName != varString
+                varSplit = split(varString, varName)
+                varIndex = parse(varSplit[2])
+                @assert isa(varIndex, Int)
+                if !haskey(gms.vars, varName)
+                    gms.vars[varName] = []
+                end
+                if varIndex in gms.vars[varName]
+                    error("ERROR|gms2jump.jl|parse_varname()|Conflicting indice variable names")
+                end
+                push!(gms.vars[varName], varIndex)
+                gms.cols2vars[varString] = parse(string(varName, "[",varIndex,"]"))
+                gms.vars2cols[parse(string(varName,"[",varIndex,"]"))] = varString
+            else
+                if !haskey(gms.vars, varName)
+                    gms.vars[varName] = 0
+                else
+                    error("ERROR|gms2jump.jl|parse_varname()|Conflicting symbolic variable names.")
+                end
+                gms.cols2vars[varString] = parse(varName)
+                gms.vars2cols[parse(varName)] = varString
+            end
+
+        end
+    else
+        return 0
+    end
+
+    return
+end
+
+function clear_m_tester()
+    cleanstring = "m_tester = Model()"
+    eval(parse(cleanstring))
     return
 end

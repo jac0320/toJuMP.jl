@@ -1,5 +1,8 @@
-using toJuMP
 using Base.Test
+using toJuMP
+using JuMP
 
-# write your own tests here
-@test 1 == 2
+
+testdir = Pkg.dir("toJuMP")
+
+include("$(testdir)/test/gms.jl")
