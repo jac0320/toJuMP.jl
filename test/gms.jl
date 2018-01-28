@@ -3,7 +3,7 @@ pkgdir = "$(Pkg.dir("toJuMP"))"
 @testset "global/abel.gms" begin
     gmspath = joinpath(pkgdir, "test", "examples", "global", "abel.gms")
     jlpath = joinpath(pkgdir, ".jls", "abel.jl")
-    print(gmspath)
+
     gms2jump(gmspath)
     m = include(jlpath)
     @test isa(m, JuMP.Model)

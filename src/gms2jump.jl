@@ -299,12 +299,21 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
     end
 
     info("Writing variables bounds...")
+
+    # LB/UB/FX/INITIAL value loop
+    @show detect_varattr_loop(gms.lb)
+    @show detect_varattr_loop(gms.ub)
+    @show detect_varattr_loop(gms.fx)
+    @show detect_varattr_loop(gms.l)
+
     for col in gms.cols
+
         if mode == "raw"
             colName = col
         elseif mode == "index"
             colName = gms.cols2vars[col]
         end
+
         if haskey(gms.lb, col)
             write(f, "setlowerbound($(colName), $(gms.lb[col]))\n")
         end

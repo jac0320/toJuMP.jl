@@ -4,6 +4,44 @@ end
 
 load_prob(probname::Vector{AbstractString}) = for i in probname load_prob(i) end
 
+function reshape_varattr(attr::Dict)
+
+    vals = [i[2] for i in attr]
+    freqtable = Dict(v => [] for v in unique(vals))
+    for i in attr
+        push!(freqtable[i[2]], i[1])
+    end
+    for k in keys(attr)
+        sort(attr[k])
+    end
+
+    return freqtable
+end
+
+
+# Perform in-place extraction and return the sub-seq
+function chop_idx_seq(xidxs::Vector{Int})
+
+    length(xidxs) == 1 && return [xidxs]
+
+    chop = []
+
+    N = length(xidxs)
+    num = xidxs[1]
+    cnt = 0
+    for i in 2:N
+        if xidxs[i] - xidxs[i-1] > 1
+            push!(chop, [num:xidxs[i-1];])
+            num = xidxs[i]
+        end
+        @show num
+    end
+
+    push!(chop, [num:xidxs[N];])
+
+    return chop
+end
+
 function try_iflinear(c::AbstractString, quadNL::Bool=false)
 	contains(c, "sqrt") && return false
 	contains(c, "^") && return false
