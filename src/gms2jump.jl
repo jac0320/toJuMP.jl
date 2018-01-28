@@ -232,7 +232,12 @@ function read_solve(file::IOStream, gms::oneProblem, lInit::AbstractString; kwar
     end
 end
 
-function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="index"; ending="m=m", quadNL=false, outdir="", kwargs...)
+function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="index";
+                            ending="m=m",
+                            quadNL=false,
+                            outdir="",
+                            loopifpossible=true,
+                            kwargs...)
 
     if mode == "index"
         parse_varname(gms)
@@ -298,44 +303,14 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
         end
     end
 
-    info("Writing variables bounds...")
-
-    # LB/UB/FX/INITIAL value loop
-    @show detect_varattr_loop(gms.lb)
-    @show detect_varattr_loop(gms.ub)
-    @show detect_varattr_loop(gms.fx)
-    @show detect_varattr_loop(gms.l)
-
-    for col in gms.cols
-
-        if mode == "raw"
-            colName = col
-        elseif mode == "index"
-            colName = gms.cols2vars[col]
-        end
-
-        if haskey(gms.lb, col)
-            write(f, "setlowerbound($(colName), $(gms.lb[col]))\n")
-        end
-        if haskey(gms.ub, col)
-            write(f, "setupperbound($(colName), $(gms.ub[col]))\n")
-        end
-        if haskey(gms.fx, col)
-            write(f, "setlowerbound($(colName), $(gms.fx[col]))\n")
-            write(f, "setupperbound($(colName), $(gms.fx[col]))\n")
-        end
-        if haskey(gms.l, col)
-            write(f, "setvalue($(colName), $(gms.l[col]))\n")
-        end
-        if haskey(gms.prior, col)
-            warning("Branching priority indicated in gms file. This behavior is solver dependent in JuMP. Consider implement them for exact gms instruction.")
-        end
-        if haskey(gms.scale, col)
-            error("variable scaling applied in gms file. Don't know how to handle this one.")
-        end
-        if haskey(gms.stage, col)
-            warning("Stage variable attribute indicated in gms file. Generic JuMP doesn't support his. Consider StructJuMP.jl for this implementation.")
-        end
+    info("Writing variables attributes...")
+    if loopifpossible && mode == "index"
+        write_varattr(f, gms.lb, gms, "setlowerbound")
+        write_varattr(f, gms.ub, gms, "setupperbound")
+        write_varattr(f, gms.fx, gms, ["setlowerbound", "setupperbound"])
+        write_varattr(f, gms.l, gms, "setvalue")
+    else
+        write_enumerate_varattr(f, gms, mode)
     end
 
     info("Writing Constraints...")
