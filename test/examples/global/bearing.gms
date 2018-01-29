@@ -1,15 +1,15 @@
 *  NLP written by GAMS Convert at 07/25/01 14:27:44
-*  
+*
 *  Equation counts
 *     Total       E       G       L       N       X
 *        13      10       1       2       0       0
-*  
+*
 *  Variable counts
 *                 x       b       i     s1s     s2s      sc      si
 *     Total    cont  binary integer    sos1    sos2   scont    sint
 *        14      14       0       0       0       0       0       0
 *  FX     0       0       0       0       0       0       0       0
-*  
+*
 *  Nonzero counts
 *     Total   const      NL     DLL
 *        41      13      28       0
@@ -52,31 +52,31 @@ e13..  - (sqr(x1) - sqr(x2)) + x14 =E= 0;
 
 * set non default bounds
 
-x1.lo = 1; x1.up = 16; 
-x2.lo = 1; x2.up = 16; 
-x3.lo = 1; x3.up = 16; 
-x4.lo = 1; x4.up = 16; 
-x6.lo = 1; x6.up = 1000; 
-x7.lo = 0.0001; 
-x8.lo = 0.0001; 
-x9.lo = 1; 
-x10.up = 50; 
-x11.lo = 100; 
-x12.lo = 1; 
-x13.lo = 0.0001; 
-x14.lo = 0.01; 
+x1.lo = 1; x1.up = 16;
+x2.lo = 1; x2.up = 16;
+x3.lo = 1; x3.up = 16;
+x4.lo = 1; x4.up = 16;
+x6.lo = 1; x6.up = 1000;
+x7.lo = 0.0001;
+x8.lo = 0.0001;
+x9.lo = 1;
+x10.up = 50;
+x11.lo = 100;
+x12.lo = 1;
+x13.lo = 0.0001;
+x14.lo = 0.01;
 
 * set non default levels
 
-x1.l = 6; 
-x2.l = 5; 
-x3.l = 6; 
-x4.l = 3; 
-x6.l = 1000; 
-x7.l = 1.6; 
-x8.l = 0.3; 
-x10.l = 50; 
-x11.l = 600; 
+x1.l = 6;
+x2.l = 5;
+x3.l = 6;
+x4.l = 3;
+x6.l = 1000;
+x7.l = 1.6;
+x8.l = 0.3;
+x10.l = 50;
+x11.l = 600;
 
 * set non default marginals
 

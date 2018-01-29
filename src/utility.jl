@@ -4,7 +4,14 @@ end
 
 load_prob(probname::Vector{AbstractString}) = for i in probname load_prob(i) end
 
-function write_varattr(io, attr::Dict, gms::oneProblem, funcstrs::Any)
+function write_varattr(io, attr::Dict, gms::oneProblem, attrkey::AbstractString, attrval::AbstractString, funcstrs::Any)
+
+    transpose_attr = Dict(k=>attr[k] for k in keys(attr) if attr[k] == attrkey)
+    write_varattr(io, transpose_attr, gms, funcstrs, attrval)
+    return
+end
+
+function write_varattr(io, attr::Dict, gms::oneProblem, funcstrs::Any, useval=nothing)
 
     vals = [i[2] for i in attr]
     freqtable = Dict(v => [] for v in unique(vals))
@@ -16,20 +23,23 @@ function write_varattr(io, attr::Dict, gms::oneProblem, funcstrs::Any)
 
     for val in keys(freqtable)
         idxseq, nameseq = separate_varseq(freqtable[val])
+        useval == nothing ? valstring = val : valstring = useval
         for i in nameseq
-            write(io, "$(funcstr)($(i), $(val))\n")
+            for fs in funcstrs
+                write(io, "$(fs)($(i), $(valstring))\n")
+            end
         end
         for i in idxseq
             if length(i) > 3
                 write(io, "for i in $(i[1][1]):$(i[end][1])\n")
                 for fs in funcstrs
-                    write(io, "\t$(fs)($(i[1][2])[i], $(val))\n")
+                    write(io, "\t$(fs)($(i[1][2])[i], $(valstring))\n")
                 end
                 write(io, "end\n")
             else
                 for j in i
                     for fs in funcstrs
-                        write(io, "$(fs)($(j[2])[$(j[1])], $(val))\n")
+                        write(io, "$(fs)($(j[2])[$(j[1])], $(valstring))\n")
                     end
                 end
             end

@@ -288,17 +288,24 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
                 eval(parse(vs))
             end
         end
-        for col in keys(gms.colsType)
-            if gms.colsType[col] == "Binary"
-                write(f, "setcategory($(gms.cols2vars[col]), :Bin)\n")
-            elseif gms.colsType[col] == "Integer"
-                write(f, "setcategory($(gms.cols2vars[col]), :Int)\n")
-            elseif gms.colsType[col] == "Positive"
-                write(f, "setlowerbound($(gms.cols2vars[col]), 0.0)\n")
-            elseif gms.colsType[col] == "Negative"
-                write(f, "setupperbound($(gms.cols2vars[col]), 0.0)\n")
-            else
-                error("ERROR|gms2jump.jl|write_julia_script()|Unsupported variable type.")
+        if loopifpossible
+            write_varattr(f, gms.colsType, gms, "Binary", ":Bin", "setcategory")
+            write_varattr(f, gms.colsType, gms, "Integer", ":Int", "setcategory")
+            write_varattr(f, gms.colsType, gms, "Positive", "0.0", "setlowerbound")
+            write_varattr(f, gms.colsType, gms, "Negative", "0.0", "setupperbound")
+        else
+            for col in keys(gms.colsType)
+                if gms.colsType[col] == "Binary"
+                    write(f, "setcategory($(gms.cols2vars[col]), :Bin)\n")
+                elseif gms.colsType[col] == "Integer"
+                    write(f, "setcategory($(gms.cols2vars[col]), :Int)\n")
+                elseif gms.colsType[col] == "Positive"
+                    write(f, "setlowerbound($(gms.cols2vars[col]), 0.0)\n")
+                elseif gms.colsType[col] == "Negative"
+                    write(f, "setupperbound($(gms.cols2vars[col]), 0.0)\n")
+                else
+                    error("ERROR|gms2jump.jl|write_julia_script()|Unsupported variable type.")
+                end
             end
         end
     end
