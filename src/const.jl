@@ -1,4 +1,4 @@
-const BLOCK_HEADER = ["Variables",
+const GMS_BLOCK_HEADER = ["Variables",
                       "Positive", # Variables
                       "Negative", # Variables
                       "Binary", # Variables
@@ -17,6 +17,6 @@ const PROBTYPE = ["LP",      # Linear Programming
                   "RMIQCP",  # Relaxed Mixed Integer Quadratic Constraint Programming
                   "RMINLP",  # Relaxed Mixed Integer Nonlinear Programming
                   "MCP",     # Mixed Complementarity Problem
-                  "MPEC",	 # Mathematical Program iwth equilibrium Constraints 
+                  "MPEC",	 # Mathematical Program iwth equilibrium Constraints
                   "CNS"		 # Constrained Nonlinear System
 				  ]

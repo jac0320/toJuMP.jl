@@ -1,6 +1,6 @@
 function read_gms_file(filename::AbstractString)
 
-    info("Reading $(filename) ...")
+    println("Reading $(filename) ...")
 
     filepath = joinpath(Pkg.dir("toJuMP"),".gms","")
     filepath = string(filepath,filename,".gms")
@@ -54,7 +54,7 @@ function read_gms_file(filename::AbstractString)
         else
             slt = split(sl, r" |,|\.")
             slt = [slt[i] for i in 1:length(slt) if length(slt[i]) > 0]
-            if slt[1] in BLOCK_HEADER
+            if slt[1] in GMS_BLOCK_HEADER
                 read_block(f, gms, l)           # Reading a general block
             elseif slt[1] in gms.rows #ismatch(r"e\d", sl[1])
                 read_equation(f, gms, l)        # Reading an equation block
@@ -202,7 +202,7 @@ function read_model(file::IOStream, gms::oneProblem, lInit::AbstractString; kwar
 	@assert strip(lInit, ['\n','\r'])[end] == ';'
     sl = split(strip(lInit,[';','\n','\r']), r" |,")
     @assert sl[1] == "Model"  # Already did outside
-    # Not sure if the information stored here is useful or not.
+    # Not sure if the printlnrmation stored here is useful or not.
     for i in 1:length(sl)
         if sl[i] == "Model"
             gms.modelSymbol = sl[i+1]
@@ -227,7 +227,7 @@ function read_solve(file::IOStream, gms::oneProblem, lInit::AbstractString; kwar
         elseif sl[i] == "minimizing"
             gms.objSense = sl[i]
         elseif sl[i] in gms.cols
-            gms.objVar = sl[i]
+            gms.objective = sl[i]
         end
     end
 end

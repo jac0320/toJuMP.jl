@@ -13,16 +13,16 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
     options = Dict(kwargs)
     clear_m_tester()
 
-    info(" --------- Start writing Julia script ---------")
+    println(" --------- Start writing Julia script ---------")
     isempty(outdir) ? filedir = joinpath(Pkg.dir("toJuMP"),".jls") : filedir = outdir
 	f = open("$(filedir)/$(juliaName).jl", "w")
 
-    info("Writing headers...")
+    println("Writing headers...")
     write(f, "using JuMP\n\n")
     write(f, "m = Model()\n")
 
     write(f, "\n# ----- Variables ----- #\n")
-    info("Writing variables...")
+    println("Writing variables...")
     if mode == "raw"
         for var in gms.cols
             if haskey(gms.colsType, var)
@@ -76,7 +76,7 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
         end
     end
 
-    info("Writing variables attributes...")
+    println("Writing variables attributes...")
     if loopifpossible && mode == "index"
         write_varattr(f, gms.lb, gms, "setlowerbound")
         write_varattr(f, gms.ub, gms, "setupperbound")
@@ -86,7 +86,7 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
         write_enumerate_varattr(f, gms, mode)
     end
 
-    info("Writing Constraints...")
+    println("Writing Constraints...")
     write(f, string("\n\n# ----- Constraints ----- #\n"))
     for row in gms.rows
         if gms.rowsSense[row] == "E"
@@ -120,30 +120,43 @@ function write_julia_script(juliaName::AbstractString, gms::oneProblem, mode="in
 
     write(f, string("\n\n# ----- Objective ----- #\n"))
     if mode == "raw"
-        info("Writing objective section...")
-        addNL = try_iflinear("@objective(m, Max, $(gms.objVar))\n")
+        println("Writing objective section...")
+        addNL = try_iflinear("@objective(m_tester, Max, $(gms.objective))\n")
         if gms.objSense == "maximizing"
-            addNL ? write(f, "@NLobjective(m, Max, $(gms.objVar))\n\n") : write(f, "@objective(m, Max, $(gms.objVar))\n\n")
+            addNL ? write(f, "@NLobjective(m, Max, $(gms.objective))\n\n") : write(f, "@objective(m, Max, $(gms.objective))\n\n")
         elseif gms.objSense == "minimizing"
-            addNL ? write(f, "@NLobjective(m, Min, $(gms.objVar))\n\n") : write(f, "@objective(m, Min, $(gms.objVar))\n\n")
+            addNL ? write(f, "@NLobjective(m, Min, $(gms.objective))\n\n") : write(f, "@objective(m, Min, $(gms.objective))\n\n")
         else
             error("ERROR|gms2jump.jl|write_julia_script()|Unkown objective sense.")
         end
     else mode == "index"
-        info("Writing objective section...")
-        addNL = try_iflinear("@objective(m, Max, $(gms.cols2vars[gms.objVar]))\n")
-        if gms.objSense == "maximizing"
-            addNL ? write(f, "@NLobjective(m, Max, $(gms.cols2vars[gms.objVar]))\n\n") : write(f, "@objective(m, Max, $(gms.cols2vars[gms.objVar]))\n\n")
-        elseif gms.objSense == "minimizing"
-            addNL ? write(f, "@NLobjective(m, Min, $(gms.cols2vars[gms.objVar]))\n\n") : write(f, "@objective(m, Min, $(gms.cols2vars[gms.objVar]))\n\n")
+        if haskey(gms.cols2vars, gms.objective)
+            println("Writing objective section...")
+            addNL = try_iflinear("@objective(m_tester, Max, $(gms.cols2vars[gms.objective]))\n")
+            if gms.objSense == "maximizing"
+                addNL ? write(f, "@objective(m, Max, $(gms.cols2vars[gms.objective]))\n\n") : write(f, "@NLobjective(m, Max, $(gms.cols2vars[gms.objective]))\n\n")
+            elseif gms.objSense == "minimizing"
+                addNL ? write(f, "@objective(m, Min, $(gms.cols2vars[gms.objective]))\n\n") : write(f, "@NLobjective(m, Min, $(gms.cols2vars[gms.objective]))\n\n")
+            else
+                error("ERROR|gms2jump.jl|write_julia_script()|Unkown objective sense.")
+            end
         else
-            error("ERROR|gms2jump.jl|write_julia_script()|Unkown objective sense.")
+            println("Writing objective section...")
+            gms.objective = replace_oprs(gms.objective)
+            addNL = try_iflinear("@objective(m_tester, Max, $(gms.objective))\n")
+            if gms.objSense == "maximizing"
+                addNL ? write(f, "@objective(m, Max, $(gms.objective))\n\n") : write(f, "@NLobjective(m, Max, $(gms.objective))\n\n")
+            elseif gms.objSense == "minimizing"
+                addNL ? write(f, "@objective(m, Min, $(gms.objective))\n\n") : write(f, "@NLobjective(m, Min, $(gms.objective))\n\n")
+            else
+                error("ERROR|gms2jump.jl|write_julia_script()|Unkown objective sense.")
+            end
         end
     end
 
     write(f, "# == Ending section == #\n")
     write(f, "$(ending) \n")
-    info(" --------- Finish writing Julia script ---------")
+    println(" --------- Finish writing Julia script ---------")
     close(f)
 
     return 0
