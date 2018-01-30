@@ -1,9 +1,21 @@
 pkgdir = "$(Pkg.dir("toJuMP"))"
 
-@testset "global/abel.gms" begin
+@testset "gms/4stufen.gms" begin
+    name = "4stufen"
+
+    gmspath = joinpath(pkgdir, "test", "examples", "gms", "$(name).gms")
+    jlpath = joinpath(pkgdir, ".jls", "$(name).jl")
+
+    gms2jump(gmspath)
+    m = include(jlpath)
+    @test isa(m, JuMP.Model)
+    @test m.objSense == :Min
+end
+
+@testset "gms/abel.gms" begin
     name = "abel"
 
-    gmspath = joinpath(pkgdir, "test", "examples", "global", "$(name).gms")
+    gmspath = joinpath(pkgdir, "test", "examples", "gms", "$(name).gms")
     jlpath = joinpath(pkgdir, ".jls", "$(name).jl")
 
     gms2jump(gmspath)
@@ -20,9 +32,9 @@ pkgdir = "$(Pkg.dir("toJuMP"))"
     @test getvalue(Variable(m, 3)) == 387.9
 end
 
-@testset "global/alkyl.gms" begin
+@testset "gms/alkyl.gms" begin
     name = "alkyl"
-    gmspath = joinpath(pkgdir, "test", "examples", "global", "$(name).gms")
+    gmspath = joinpath(pkgdir, "test", "examples", "gms", "$(name).gms")
     jlpath = joinpath(pkgdir, ".jls", "$(name).jl")
 
     gms2jump(gmspath)
@@ -45,10 +57,20 @@ end
     @test getupperbound(Variable(m, 15)) == 1.01010101010101
 end
 
+@testset "gms/autocorr_bern20-03.gms" begin
+    name = "autocorr_bern20-03"
 
-@testset "global/bearing.gms" begin
+    gmspath = joinpath(pkgdir, "test", "examples", "gms", "$(name).gms")
+    jlpath = joinpath(pkgdir, ".jls", "$(name).jl")
+
+    gms2jump(gmspath)
+    m = include(jlpath)
+    @test isa(m, JuMP.Model)
+end
+
+@testset "gms/bearing.gms" begin
     name = "bearing"
-    gmspath = joinpath(pkgdir, "test", "examples", "global", "$(name).gms")
+    gmspath = joinpath(pkgdir, "test", "examples", "gms", "$(name).gms")
     jlpath = joinpath(pkgdir, ".jls", "$(name).jl")
 
     gms2jump(gmspath)
@@ -64,13 +86,85 @@ end
     @test getupperbound(Variable(m, 2)) == 16
     @test getlowerbound(Variable(m, 6)) == 1
     @test getupperbound(Variable(m, 6)) == 1000
-    
+
     @test getupperbound(Variable(m, 2)) == 16
 end
 
-@testset "global/camcge.gms" begin
+@testset "gms/camcge.gms" begin
     name = "camcge"
-    gmspath = joinpath(pkgdir, "test", "examples", "global", "$(name).gms")
+    gmspath = joinpath(pkgdir, "test", "examples", "gms", "$(name).gms")
+    jlpath = joinpath(pkgdir, ".jls", "$(name).jl")
+
+    gms2jump(gmspath)
+    m = include(jlpath)
+    @test isa(m, JuMP.Model)
+
+    @test m.objSense == :Min
+    @test length(m.colVal) == 280
+    @test getlowerbound(Variable(m, 101)) == 0.0
+    @test getlowerbound(Variable(m, 172)) == 0.0
+    @test getlowerbound(Variable(m, 200)) == 0.0
+end
+
+@testset "gms/ex4_1_3.gms" begin
+    name = "ex4_1_3"
+
+    gmspath = joinpath(pkgdir, "test", "examples", "gms", "$(name).gms")
+    jlpath = joinpath(pkgdir, ".jls", "$(name).jl")
+
+    gms2jump(gmspath)
+    m = include(jlpath)
+    @test isa(m, JuMP.Model)
+end
+
+@testset "gms/ex7_3_5.gms" begin
+    name = "ex7_3_5"
+
+    gmspath = joinpath(pkgdir, "test", "examples", "gms", "$(name).gms")
+    jlpath = joinpath(pkgdir, ".jls", "$(name).jl")
+
+    gms2jump(gmspath)
+    m = include(jlpath)
+    @test isa(m, JuMP.Model)
+end
+
+@testset "gms/ex14_2_4.gms" begin
+    name = "ex14_2_4"
+
+    gmspath = joinpath(pkgdir, "test", "examples", "gms", "$(name).gms")
+    jlpath = joinpath(pkgdir, ".jls", "$(name).jl")
+
+    gms2jump(gmspath)
+    m = include(jlpath)
+    @test isa(m, JuMP.Model)
+end
+
+@testset "gms/ex14_2_8.gms" begin
+    name = "ex14_2_8"
+
+    gmspath = joinpath(pkgdir, "test", "examples", "gms", "$(name).gms")
+    jlpath = joinpath(pkgdir, ".jls", "$(name).jl")
+
+    gms2jump(gmspath)
+    m = include(jlpath)
+    @test isa(m, JuMP.Model)
+end
+
+@testset "gms/st_rv1.gms" begin
+    name = "st_rv1"
+
+    gmspath = joinpath(pkgdir, "test", "examples", "gms", "$(name).gms")
+    jlpath = joinpath(pkgdir, ".jls", "$(name).jl")
+
+    gms2jump(gmspath)
+    m = include(jlpath)
+    @test isa(m, JuMP.Model)
+end
+
+@testset "gms/water.gms" begin
+    name = "water"
+
+    gmspath = joinpath(pkgdir, "test", "examples", "gms", "$(name).gms")
     jlpath = joinpath(pkgdir, ".jls", "$(name).jl")
 
     gms2jump(gmspath)

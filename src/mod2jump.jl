@@ -21,11 +21,25 @@ function indexOf(string1, string2)
     return 0
 end
 
-function read_mod_file(modfile::ASCIIString)
+function read_mod_file(filename::AbstractString)
 
-    # FOLLOWING PORTION REMOVES THE EMPTY LINES AND
-    # COMBINES THE UNNECESSARY LINEBREAKS
-    file = open(modfile, "r")
+    info("Reading $(filename) ...")
+
+    filepath = joinpath(Pkg.dir("toJuMP"),".mod","")
+    filepath = string(filepath,filename,".mod")
+
+    if isfile(filepath)
+        f = open(filepath, "r")
+    elseif isfile(filename)
+        f = open(filename, "r")
+    else
+        error("No gms file detected.")
+    end
+
+    file = open(filename, "r")
+
+    mod = oneProblem
+
     linestart = Any[]
     lines = readlines(file)
     newlines = Any[]
@@ -175,11 +189,11 @@ function read_mod_file(modfile::ASCIIString)
     end
     close(problem_call)
 end
-
-if length(ARGS) != 1
-    error("Usage: julia read_mod.jl modfile")
-end
-
-file_name = String(ARGS[1])
-
-read_mod_file(file_name)
+#
+# if length(ARGS) != 1
+#     error("Usage: julia read_mod.jl filename")
+# end
+#
+# file_name = String(ARGS[1])
+#
+# read_mod_file(file_name)
