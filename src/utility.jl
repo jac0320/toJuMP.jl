@@ -4,6 +4,130 @@ end
 
 load_prob(probname::Vector{AbstractString}) = for i in probname load_prob(i) end
 
+function write_varattr(io, attr::Dict, gms::oneProblem, attrkey::AbstractString, attrval::AbstractString, funcstrs::Any)
+
+    transpose_attr = Dict(k=>attr[k] for k in keys(attr) if attr[k] == attrkey)
+    write_varattr(io, transpose_attr, gms, funcstrs, attrval)
+    return
+end
+
+function write_varattr(io, attr::Dict, gms::oneProblem, funcstrs::Any, useval=nothing)
+
+    vals = [i[2] for i in attr]
+    freqtable = Dict(v => [] for v in unique(vals))
+    isa(funcstrs, Vector) ? funcstrs = funcstrs : funcstrs = [funcstrs]
+
+    for i in attr
+        push!(freqtable[i[2]], i[1])
+    end
+
+    for val in keys(freqtable)
+        idxseq, nameseq = separate_varseq(freqtable[val])
+        useval == nothing ? valstring = val : valstring = useval
+        for i in nameseq
+            for fs in funcstrs
+                write(io, "$(fs)($(i), $(valstring))\n")
+            end
+        end
+        for i in idxseq
+            if length(i) > 3
+                write(io, "for i in $(i[1][1]):$(i[end][1])\n")
+                for fs in funcstrs
+                    write(io, "\t$(fs)($(i[1][2])[i], $(valstring))\n")
+                end
+                write(io, "end\n")
+            else
+                for j in i
+                    for fs in funcstrs
+                        write(io, "$(fs)($(j[2])[$(j[1])], $(valstring))\n")
+                    end
+                end
+            end
+        end
+    end
+
+    return
+end
+
+function write_varattr(io, gms::oneProblem, mode::AbstractString)
+
+    for col in gms.cols
+
+        if mode == "raw"
+            colName = col
+        elseif mode == "index"
+            colName = gms.cols2vars[col]
+        end
+
+        if haskey(gms.lb, col)
+            write(f, "setlowerbound($(colName), $(gms.lb[col]))\n")
+        end
+        if haskey(gms.ub, col)
+            write(f, "setupperbound($(colName), $(gms.ub[col]))\n")
+        end
+        if haskey(gms.fx, col)
+            write(f, "setlowerbound($(colName), $(gms.fx[col]))\n")
+            write(f, "setupperbound($(colName), $(gms.fx[col]))\n")
+        end
+        if haskey(gms.l, col)
+            write(f, "setvalue($(colName), $(gms.l[col]))\n")
+        end
+        if haskey(gms.prior, col)
+            warning("Branching priority indicated in gms file. This behavior is solver dependent in JuMP. Consider implement them for exact gms instruction.")
+        end
+        if haskey(gms.scale, col)
+            error("variable scaling applied in gms file. Don't know how to handle this one.")
+        end
+        if haskey(gms.stage, col)
+            warning("Stage variable attribute indicated in gms file. Generic JuMP doesn't support his. Consider StructJuMP.jl for this implementation.")
+        end
+    end
+
+    return
+end
+
+function separate_varseq(varseq::Vector)
+
+    nameseq = []
+    idxseq = []
+    for i in varseq
+        if match(r"\d+", i) == nothing
+            push!(nameseq, i)
+        else
+            idx = convert(Int, parse(match(r"\d+", i).match))
+            vname = match(r"[a-zA-Z]+", i).match
+            push!(idxseq, (idx, vname))
+        end
+    end
+
+    return chop_idx_seq(sort(idxseq)), nameseq
+end
+
+function chop_idx_seq(xidxs::Vector)
+
+    if length(xidxs) == 1
+        return [xidxs]
+    end
+
+    chop = []
+
+    N = length(xidxs)
+    num = 1
+    cnt = 0
+    for i in 2:N
+        # Sequence break or variable name can cause a partition
+        if xidxs[i][1] - xidxs[i-1][1] > 1 || xidxs[i][2] != xidxs[i-1][2]
+            subseq = [xidxs[num:(i-1)];]
+            push!(chop, subseq)
+            num = i
+        end
+    end
+
+    push!(chop, [xidxs[num:N];])
+
+    return chop
+end
+
 function try_iflinear(c::AbstractString, quadNL::Bool=false)
 	contains(c, "sqrt") && return false
 	contains(c, "^") && return false
@@ -32,7 +156,6 @@ function try_addvar(m_t, var::AbstractString)
     return m
 end
 
-
 function get_one_line(file::IOStream; one_line=" ")
     while one_line[end] != ';'
         one_line = string(one_line, lstrip(readline(file),' '))
@@ -42,9 +165,6 @@ function get_one_line(file::IOStream; one_line=" ")
     return one_line[1]
 end
 
-"""
-    Reform the constraint expression using variables with indices
-"""
 function replace_vars(gms::oneProblem)
     for row in gms.rows
 		gms.rowsLHS[row] = replace(gms.rowsLHS[row], r"x(\d+)", s"x[\1]")
