@@ -1,9 +1,3 @@
-function load_prob(probname::AbstractString)
-    include("$(Pkg.dir())/toJuMP/instances/$(probname).jl")
-end
-
-load_prob(probname::Vector{AbstractString}) = for i in probname load_prob(i) end
-
 function write_varattr(io, attr::Dict, gms::oneProblem, attrkey::AbstractString, attrval::AbstractString, funcstrs::Any)
 
     transpose_attr = Dict(k=>attr[k] for k in keys(attr) if attr[k] == attrkey)
@@ -129,10 +123,13 @@ function chop_idx_seq(xidxs::Vector)
 end
 
 function try_iflinear(c::AbstractString, quadNL::Bool=false)
+
 	contains(c, "sqrt") && return false
 	contains(c, "^") && return false
 	contains(c, "abs") && return false
+
     linear = true
+
     try
         con = eval(parse(c))
         if quadNL && isa(con, JuMP.ConstraintRef{JuMP.Model,JuMP.GenericQuadConstraint{JuMP.GenericQuadExpr{Float64,JuMP.Variable}}})
@@ -141,6 +138,7 @@ function try_iflinear(c::AbstractString, quadNL::Bool=false)
     catch e
         linear = false
     end
+
     return linear
 end
 
@@ -171,6 +169,9 @@ function replace_vars(gms::oneProblem)
 		gms.rowsLHS[row] = replace(gms.rowsLHS[row], r"i(\d+)", s"i[\1]")
 		gms.rowsLHS[row] = replace(gms.rowsLHS[row], r"b(\d+)", s"b[\1]")
     end
+    gms.objective = replace(gms.objective, r"x(\d+)", s"x[\1]")
+    gms.objective = replace(gms.objective, r"i(\d+)", s"i[\1]")
+    gms.objective = replace(gms.objective, r"b(\d+)", s"b[\1]")
 end
 
 function replace_oprs(line::AbstractString; kwargs...)
@@ -277,9 +278,9 @@ end
 
 function convert_equality(probname="")
 
-    info("This function handles problem with too many equality constraints.", prefix="POD Experiment: ")
+    println("This function handles problem with too many equality constraints.", prefix="POD Experiment: ")
     if !isfile("$(Pkg.dir())/toJuMP/instances/$(probname).jl")
-        info("NO problem file detected in $(Pkg.dir())/toJuMP/instances/$(probname).jl", prefix="POD Experiment: ")
+        println("NO problem file detected in $(Pkg.dir())/toJuMP/instances/$(probname).jl", prefix="POD Experiment: ")
         return
     end
 

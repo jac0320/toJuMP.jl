@@ -1,15 +1,15 @@
 $offlisting
-*  
+*
 *  Equation counts
 *      Total        E        G        L        N        X        C        B
 *         99       95        4        0        0        0        0        0
-*  
+*
 *  Variable counts
 *                   x        b        i      s1s      s2s       sc       si
 *      Total     cont   binary  integer     sos1     sos2    scont     sint
 *        150      102       48        0        0        0        0        0
 *  FX      0
-*  
+*
 *  Nonzero counts
 *      Total    const       NL      DLL
 *        319      232       87        0

@@ -2,8 +2,7 @@ type oneProblem
     modelSymbol ::AbstractString
     modelType   ::AbstractString
     objSense    ::AbstractString
-    objVar      ::AbstractString    # Should be objCol not var
-    objective   ::AbstractString
+    objective   ::AbstractString    # Should be objCol not var
     rows        ::Array
     cols        ::Array
     rowsLabel   ::Dict          #?
@@ -25,7 +24,7 @@ type oneProblem
     cols2vars   ::Dict          # Links indexed variables to raw column names
     biVars      ::Dict
     partVars    ::Array
-    oneProblem() = new("", "", "", "", "",
+    oneProblem() = new("", "", "", "",
                         [], [],
                         Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(),
                         [],
