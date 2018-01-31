@@ -141,7 +141,12 @@ function mod_read_objective(file::IOStream, mod::oneProblem, lInit::AbstractStri
     return
 end
 
-function mod2jump(modPath::AbstractString; mode::AbstractString="index", ending="m=m", quadNL::Bool=false, outdir::AbstractString="")
+function mod2jump(modPath::AbstractString;
+                    mode::AbstractString="index",
+                    ending="m=m",
+                    quadNL::Bool=false,
+                    loopifpossible=true,
+                    outdir::AbstractString="")
 
     probName = replace(splitdir(modPath)[end], ".mod", "")
     mod = read_mod_file(modPath)

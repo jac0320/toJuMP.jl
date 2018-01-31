@@ -1,9 +1,3 @@
-function load_prob(probname::AbstractString)
-    include("$(Pkg.dir())/toJuMP/instances/$(probname).jl")
-end
-
-load_prob(probname::Vector{AbstractString}) = for i in probname load_prob(i) end
-
 function write_varattr(io, attr::Dict, gms::oneProblem, attrkey::AbstractString, attrval::AbstractString, funcstrs::Any)
 
     transpose_attr = Dict(k=>attr[k] for k in keys(attr) if attr[k] == attrkey)
@@ -144,7 +138,7 @@ function try_iflinear(c::AbstractString, quadNL::Bool=false)
     catch e
         linear = false
     end
-    
+
     return linear
 end
 

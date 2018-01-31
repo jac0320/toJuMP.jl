@@ -12,7 +12,6 @@ include("gms2jump.jl")
 include("mod2jump.jl")
 
 !isdir("$(Pkg.dir())/toJuMP/.jls") && mkdir("$(Pkg.dir())/toJuMP/.jls")
-!isdir("$(Pkg.dir())/toJuMP/.prob") && mkdir("$(Pkg.dir())/toJuMP/.prob")
 
 m_tester = Model()
 

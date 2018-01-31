@@ -1,6 +1,7 @@
 using Base.Test
 using toJuMP
 using JuMP
+using Ipopt
 
 
 testdir = Pkg.dir("toJuMP")

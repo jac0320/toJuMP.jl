@@ -10,6 +10,13 @@ pkgdir = "$(Pkg.dir("toJuMP"))"
     m = include(jlpath)
     @test isa(m, JuMP.Model)
     @test m.objSense == :Min
+    @test length(m.colVal) == 150
+    @test length([i for i in m.colCat if i == :Cont]) == 102
+    @test length([i for i in m.colCat if i == :Bin]) == 48
+
+    @test getlowerbound(Variable(m, 13)) == 5
+    @test getvalue(Variable(m, 33)) == 176.503
+
 end
 
 @testset "gms/abel.gms" begin
@@ -30,6 +37,10 @@ end
     @test getlowerbound(Variable(m, 10)) == 85.3
     @test getupperbound(Variable(m, 10)) == 85.3
     @test getvalue(Variable(m, 3)) == 387.9
+
+    setsolver(m, IpoptSolver(print_level=0))
+    solve(m)
+    @test isapprox(m.objVal, 225.1945831861349;atol=1e-4)
 end
 
 @testset "gms/alkyl.gms" begin
@@ -55,6 +66,10 @@ end
     @test getupperbound(Variable(m, 9)) == 12
     @test getlowerbound(Variable(m, 14)) == 0.9
     @test getupperbound(Variable(m, 15)) == 1.01010101010101
+
+    setsolver(m, IpoptSolver(print_level=0))
+    solve(m)
+    @test isapprox(m.objVal, -1.7650001749159285;atol=1e-4)
 end
 
 @testset "gms/autocorr_bern20-03.gms" begin
@@ -66,6 +81,10 @@ end
     gms2jump(gmspath)
     m = include(jlpath)
     @test isa(m, JuMP.Model)
+    @test m.objSense == :Min
+    @test length(m.colVal) == 21
+    @test length([i for i in m.colCat if i == :Cont]) == 1
+    @test length([i for i in m.colCat if i == :Bin]) == 20
 end
 
 @testset "gms/bearing.gms" begin
@@ -86,8 +105,11 @@ end
     @test getupperbound(Variable(m, 2)) == 16
     @test getlowerbound(Variable(m, 6)) == 1
     @test getupperbound(Variable(m, 6)) == 1000
-
     @test getupperbound(Variable(m, 2)) == 16
+
+    setsolver(m, IpoptSolver(print_level=0))
+    solve(m)
+    @test isapprox(m.objVal, 1.9517331852884277;atol=1e-4)
 end
 
 @testset "gms/camcge.gms" begin
@@ -101,9 +123,16 @@ end
 
     @test m.objSense == :Min
     @test length(m.colVal) == 280
+    @test length([i for i in m.colCat if i == :Cont]) == 280
+    @test length([i for i in m.colCat if i == :Bin]) == 0
+
     @test getlowerbound(Variable(m, 101)) == 0.0
     @test getlowerbound(Variable(m, 172)) == 0.0
     @test getlowerbound(Variable(m, 200)) == 0.0
+
+    setsolver(m, IpoptSolver(print_level=0))
+    solve(m)
+    @test isapprox(m.objVal, -191.73462423686072;atol=1e-4)
 end
 
 @testset "gms/ex4_1_3.gms" begin
@@ -115,6 +144,15 @@ end
     gms2jump(gmspath)
     m = include(jlpath)
     @test isa(m, JuMP.Model)
+
+    @test m.objSense == :Min
+    @test length(m.colVal) == 2
+    @test length([i for i in m.colCat if i == :Cont]) == 2
+    @test length([i for i in m.colCat if i == :Bin]) == 0
+
+    setsolver(m, IpoptSolver(print_level=0))
+    solve(m)
+    @test isapprox(m.objVal, -443.67170474112413;atol=1e-4)
 end
 
 @testset "gms/ex7_3_5.gms" begin
@@ -126,6 +164,15 @@ end
     gms2jump(gmspath)
     m = include(jlpath)
     @test isa(m, JuMP.Model)
+
+    @test m.objSense == :Min
+    @test length(m.colVal) == 14
+    @test length([i for i in m.colCat if i == :Cont]) == 14
+    @test length([i for i in m.colCat if i == :Bin]) == 0
+
+    setsolver(m, IpoptSolver(print_level=0))
+    status = solve(m)
+    @test status == :Error
 end
 
 @testset "gms/ex14_2_4.gms" begin
@@ -137,6 +184,15 @@ end
     gms2jump(gmspath)
     m = include(jlpath)
     @test isa(m, JuMP.Model)
+
+    @test m.objSense == :Min
+    @test length(m.colVal) == 6
+    @test length([i for i in m.colCat if i == :Cont]) == 6
+    @test length([i for i in m.colCat if i == :Bin]) == 0
+
+    setsolver(m, IpoptSolver(print_level=0))
+    solve(m)
+    @test isapprox(m.objVal, 7.562126836459202e-9;atol=1e-4)
 end
 
 @testset "gms/ex14_2_8.gms" begin
@@ -148,6 +204,15 @@ end
     gms2jump(gmspath)
     m = include(jlpath)
     @test isa(m, JuMP.Model)
+
+    @test m.objSense == :Min
+    @test length(m.colVal) == 5
+    @test length([i for i in m.colCat if i == :Cont]) == 5
+    @test length([i for i in m.colCat if i == :Bin]) == 0
+
+    setsolver(m, IpoptSolver(print_level=0))
+    solve(m)
+    @test isapprox(m.objVal, 2.624689270273677e-9;atol=1e-4)
 end
 
 @testset "gms/st_rv1.gms" begin
@@ -159,6 +224,15 @@ end
     gms2jump(gmspath)
     m = include(jlpath)
     @test isa(m, JuMP.Model)
+
+    @test m.objSense == :Min
+    @test length(m.colVal) == 11
+    @test length([i for i in m.colCat if i == :Cont]) == 11
+    @test length([i for i in m.colCat if i == :Bin]) == 0
+
+    setsolver(m, IpoptSolver(print_level=0))
+    solve(m)
+    @test isapprox(m.objVal, -59.904345906908;atol=1e-4)
 end
 
 @testset "gms/water.gms" begin
@@ -170,4 +244,13 @@ end
     gms2jump(gmspath)
     m = include(jlpath)
     @test isa(m, JuMP.Model)
+
+    @test m.objSense == :Min
+    @test length(m.colVal) == 42
+    @test length([i for i in m.colCat if i == :Cont]) == 42
+    @test length([i for i in m.colCat if i == :Bin]) == 0
+
+    setsolver(m, IpoptSolver(print_level=0))
+    status = solve(m)
+    @test status == :Error
 end

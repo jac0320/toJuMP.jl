@@ -232,11 +232,16 @@ function read_solve(file::IOStream, gms::oneProblem, lInit::AbstractString; kwar
     end
 end
 
-function gms2jump(gmsPath::AbstractString; mode::AbstractString="index", ending="m=m", quadNL::Bool=false, outdir::AbstractString="")
+function gms2jump(gmsPath::AbstractString;
+                    mode::AbstractString="index",
+                    ending="m=m",
+                    quadNL::Bool=false,
+                    loopifpossible::Bool=true,
+                    outdir::AbstractString="")
 
     probName = replace(splitdir(gmsPath)[end],".gms", "")
     gms = read_gms_file(gmsPath)
-    write_julia_script(probName, gms, mode, quadNL=quadNL, outdir=outdir)
+    write_julia_script(probName, gms, mode, loopifpossible=loopifpossible, quadNL=quadNL, outdir=outdir)
 
     return
 end
