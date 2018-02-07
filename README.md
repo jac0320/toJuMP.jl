@@ -3,8 +3,7 @@
 Dev: [![Build Status](https://travis-ci.org/jac0320/toJuMP.jl.svg?branch=master)](https://travis-ci.org/jac0320/toJuMP.jl)
 [![codecov](https://codecov.io/gh/jac0320/toJuMP.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/jac0320/toJuMP.jl)
 
-
-This is a small tool that converts scalar optimization model with different formats into a [JuMP model](https://github.com/JuliaOpt/JuMP.jl) script (`.jl`). The scalar model is unlike a modeling script that carries the model information with sets, looped-constraints, and complex index variables. You will find this tools useful when benchmarking your algorithm using established instance libraries. Please see some of the converted MINLP instances in [MINLPLibJuMP.jl](https://github.com/lanl-ansi/MINLPLibJuMP.jl).
+This is a small tool that converts scalar optimization model with different formats into a [JuMP model](https://github.com/JuliaOpt/JuMP.jl) script (`.jl`). The scalar model is unlike a modeling script that carries the model information with sets, looped-constraints, and complex index variables. You will find this tools useful when benchmarking your algorithm using established instance libraries. Please see some of the converted MINLP instances in [MINLPLibJuMP.jl](https://github.com/lanl-ansi/MINLPLibJuMP.jl). The goal is to provide easy entrance of JuMP for all optimizaters.
 
 # Installation
 This is a developing repo as more formats and exceptions are considered. The mission is to provide
@@ -19,14 +18,24 @@ Pkg.clone("https://github.com/jac0320/toJuMP.jl.git")
 ```
 gms2jump("*.gms")
 ```
+Conversion guidelines follow [GAMS User Guide](http://pages.cs.wisc.edu/~swright/635/docs/GAMSUsersGuide.pdf) and [GAMS Website](https://www.gams.com/latest/docs/index.html).
+Some notable conversion assumptions:
+* Integer variables are automatically upper bounded with 100 (controlled by `IntVarUp` in GAMS)
 
 
 ### `.mod` --> `.jl`
 ```
 mod2jump("*.mod")
 ```
+Some notable conversion assumptions:
+* Fixed variable with `.fx` in `.gms` are automatically converted into constraints.
 
 ### `.nl` --> `.jl` (upcoming)
+
+### `.lp` --> `.jl` (upcoming)
+Conversion guidelines follow [CPLEX LP Format](https://www.ibm.com/support/knowledgecenter/en/SSSA5P_12.8.0/ilog.odms.cplex.help/CPLEX/FileFormats/topics/LP.html)
+
+### `.mps` --> `.jl` (upcoming)
 
 ### Conversion options
 

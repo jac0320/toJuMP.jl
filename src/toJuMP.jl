@@ -10,6 +10,7 @@ include("utility.jl")
 
 include("gms2jump.jl")
 include("mod2jump.jl")
+include("lp2jump.jl")
 
 !isdir("$(Pkg.dir())/toJuMP/.jls") && mkdir("$(Pkg.dir())/toJuMP/.jls")
 

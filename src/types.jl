@@ -14,7 +14,7 @@ type oneProblem
     scale       ::Dict          # Numercial scaling factor [RARE]
     prior       ::Dict          # Branching priority
     stage       ::Dict          # Block structure stage
-    rowsLHS     ::Dict          # LHS of constraints TODO: make it expresion
+    rowsLHS     ::Dict          # LHS of constraints TODO: make it expresion ?
     rowsRHS     ::Dict          # RHS of constraints TODO: make sure rhs is always a value
     rowsSense   ::Dict          # Equation Sense
     colsType    ::Dict          #?
