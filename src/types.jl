@@ -1,11 +1,11 @@
 type oneProblem
     modelSymbol ::AbstractString
-    modelType   ::AbstractString
-    objSense    ::AbstractString
+    modelType   ::AbstractString    
+    objSense    ::AbstractString    # problem sense
     objective   ::AbstractString    # Should be objCol not var
-    rows        ::Array
-    cols        ::Array
-    rowsLabel   ::Dict          #?
+    objname     ::AbstractString    # Stores surragte name for objective functions
+    rows        ::Array         # Constraints names
+    cols        ::Array         # Variable names
     lb          ::Dict          # Variable upper bound
     ub          ::Dict          # Variable lower bound
     l           ::Dict          # Level or primal value
@@ -24,9 +24,9 @@ type oneProblem
     cols2vars   ::Dict          # Links indexed variables to raw column names
     biVars      ::Dict
     partVars    ::Array
-    oneProblem() = new("", "", "", "",
+    oneProblem() = new("", "", "", "", "",
                         [], [],
-                        Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(),
+                        Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(), Dict(),
                         [],
                         Dict(), Dict(), Dict(), Dict(),
                         [])
